@@ -32,10 +32,20 @@ export function FormInscripcion() {
   const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
 
   useEffect(() => {
+    // Intenta cargar del backend; si falla usa datos de ejemplo para poder ver el formulario
     Promise.all([getRegiones(), getCarreras()])
-      .then(([r, c]) => {
-        setRegiones(r);
-        setCarreras(c);
+      .then(([r, c]) => { setRegiones(r); setCarreras(c); })
+      .catch(() => {
+        setRegiones([
+          { id: 1, nombre: "Lima" }, { id: 2, nombre: "Arequipa" },
+          { id: 3, nombre: "Cusco" }, { id: 4, nombre: "La Libertad" },
+          { id: 5, nombre: "Piura" },
+        ]);
+        setCarreras([
+          { id: 1, nombre: "Civil" }, { id: 2, nombre: "Sistemas" },
+          { id: 3, nombre: "Industrial" }, { id: 4, nombre: "Mecánica" },
+          { id: 5, nombre: "Eléctrica" },
+        ]);
       })
       .finally(() => setCargandoCatalogos(false));
   }, []);
