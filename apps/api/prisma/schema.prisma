@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Region {
+  id           Int           @id @default(autoincrement())
+  nombre       String        @unique
+  postulaciones Postulacion[]
+  colegiados   Colegiado[]
+  revisores    Revisor[]
+  secuencias   Secuencia[]
+}
+
+model Carrera {
+  id           Int           @id @default(autoincrement())
+  nombre       String        @unique
+  postulaciones Postulacion[]
+  colegiados   Colegiado[]
+  secuencias   Secuencia[]
+}
+
+model Postulacion {
+  id           Int           @id @default(autoincrement())
+  dni          String
+  nombres      String
+  apellidoPaterno String
+  apellidoMaterno String
+  gmail        String
+  fotoUrl      String?
+  tituloUrl    String?
+  voucherUrl   String?
+  estado       EstadoPostulacion @default(PENDIENTE)
+  regionId     Int
+  carreraId    Int
+  region       Region        @relation(fields: [regionId], references: [id])
+  carrera      Carrera       @relation(fields: [carreraId], references: [id])
+  observaciones Observacion[]
+  creadoEn     DateTime      @default(now())
+  actualizadoEn DateTime     @updatedAt
+}
+
+model Observacion {
+  id            Int         @id @default(autoincrement())
+  postulacionId Int
+  mensaje       String
+  revisorId     Int
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id])
+  revisor       Revisor     @relation(fields: [revisorId], references: [id])
+  creadoEn      DateTime    @default(now())
+}
+
+model Colegiado {
+  id          Int           @id @default(autoincrement())
+  codigo      String        @unique
+  dni         String        @unique
+  nombres     String
+  apellidoPaterno String
+  apellidoMaterno String
+  regionId    Int
+  carreraId   Int
+  fotoUrl     String?
+  fechaAlta   DateTime      @default(now())
+  habilitado  Boolean       @default(true)
+  region      Region        @relation(fields: [regionId], references: [id])
+  carrera     Carrera       @relation(fields: [carreraId], references: [id])
+  mensualidades Mensualidad[]
+}
+
+model Mensualidad {
+  id          Int       @id @default(autoincrement())
+  colegiadoId Int
+  periodo     String    // YYYY-MM
+  monto       Float     @default(20)
+  pagadoEn    DateTime?
+  colegiado   Colegiado @relation(fields: [colegiadoId], references: [id])
+
+  @@unique([colegiadoId, periodo])
+}
+
+model Revisor {
+  id           Int           @id @default(autoincrement())
+  nombres      String
+  regionId     Int
+  region       Region        @relation(fields: [regionId], references: [id])
+  observaciones Observacion[]
+}
+
+model Secuencia {
+  id        Int @id @default(autoincrement())
+  regionId  Int
+  carreraId Int
+  ultimo    Int @default(0)
+  region    Region  @relation(fields: [regionId], references: [id])
+  carrera   Carrera @relation(fields: [carreraId], references: [id])
+
+  @@unique([regionId, carreraId])
+}
+
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  accion    String
+  entidad   String
+  entidadId Int
+  actorId   Int?
+  fecha     DateTime @default(now())
+}
+
+enum EstadoPostulacion {
+  PENDIENTE
+  OBSERVADO
+  SUBSANADO
+  APROBADO
+  RECHAZADO
+}
