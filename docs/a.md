@@ -4,7 +4,7 @@ Sistema de Inscripciones – CIP · Historias y Requisitos Finales
 
 Sistema de Inscripciones – Colegio de Ingenieros del Perú
 
-*Documento consolidado tras resolución de contradicciones*
+*Documento consolidado v2 — incluye cobertura integral del entorno físico*
 
 # 1. Propósito del documento
 
@@ -40,6 +40,7 @@ La siguiente tabla resume las contradicciones detectadas entre los documentos de
 | Texto exacto de la marca de agua | RF-26 reescribió la marca como "Inhabilitado/Moroso". | Indicaciones iniciales: texto literal "inhabilitado/morón". La entrevista no contradice ese literal. | Se mantiene el texto literal de las indicaciones iniciales: "inhabilitado/morón". |
 | Canal de notificación al postulante | US-02 exigía específicamente una cuenta de Gmail. | Entrevista (P5): notificación por un medio a elección. | Se generaliza a correo electrónico (cualquier proveedor). No se exige Gmail. |
 | Medidas de seguridad estrictas y Ley 29733 | RNF-01 y RF-30 incluían cifrado, autenticación y auditoría detallada. | Entrevista (P9): el PMV no contempla medidas de seguridad estrictas. | El PMV no implementa cifrado avanzado, ni controles de protección de datos personales según Ley 29733. Se documenta como deuda técnica para una fase posterior. |
+| Cobertura del flujo físico | El flujo físico cubría solo la digitalización de documentos por el revisor (US-03). Pagos asumían canal digital (pasarela o voucher) y la subsanación se planteaba únicamente vía enlace por correo. | Aclaración posterior del cliente: el sistema debe ser válido y adaptable a un entorno físico completo, donde el revisor recibe documentos y pagos en ventanilla. | Se amplía US-03 (captura de pago en efectivo), se agrega US-11 (registro de pagos en ventanilla), se amplía US-06 (subsanación presencial). RF-10 pasa a tres modalidades de pago. Se incorporan RF-31, RF-32 y RF-33. |
 
 # 4. Roles del sistema
 
@@ -49,7 +50,7 @@ Tras la consolidación se reconocen únicamente los siguientes roles:
 
 - **Colegiado: **ingeniero ya inscrito. No requiere autenticación; consulta su carnet y paga su mensualidad ingresando su DNI o su código de colegiado en una vista pública.
 
-- **Revisor Regional: **único rol administrativo del sistema. Existe un revisor por región. Audita expedientes, asigna carrera, aprueba u observa solicitudes y registra expedientes presentados de forma física.
+- **Revisor Regional: **único rol administrativo del sistema. Existe un revisor por región. Audita expedientes, asigna carrera, aprueba u observa solicitudes, registra expedientes presentados de forma física, recibe y registra pagos en efectivo en ventanilla (inscripción y mensualidades) y atiende subsanaciones presenciales.
 
 # 5. Historias de Usuario finales
 
@@ -83,16 +84,19 @@ Se conservan los códigos US-01 a US-10 por trazabilidad respecto al documento o
 
 | **HISTORIA DE USUARIO** |
 | --- |
-| **Código:** | US-03 | **Título:** | Registro manual de solicitudes físicas |
-| **Prioridad:** | 3 | **Puntos:** | 5 |
+| **Código:** | US-03 | **Título:** | Registro manual de solicitudes y pagos en ventanilla |
+| **Prioridad:** | 3 | **Puntos:** | 8 |
 | **Descripción:** |
-| Como Revisor Regional, quiero contar con una interfaz para digitalizar y dar de alta los expedientes que los postulantes presentan de manera física en la institución, dentro de mi región. |
+| Como Revisor Regional, quiero contar con una interfaz para digitalizar y dar de alta los expedientes que los postulantes presentan de manera física en la institución, y para recibir y registrar el pago de inscripción en efectivo cuando se efectúa en ventanilla, dentro de mi región. |
 | **Criterios de aceptación:** |
-| **1. **El panel administrativo del revisor incluye una sección dedicada para transcribir el DNI y el correo electrónico del postulante, y para cargar los documentos previamente escaneados en oficina. |
+| **1. **El panel administrativo del revisor incluye una sección dedicada para transcribir el DNI y el correo electrónico del postulante, y para cargar los documentos previamente escaneados en oficina (foto y título en PDF). |
 | **2. **El sistema valida los datos de identidad contra la API de RENIEC antes de permitir el guardado del expediente físico. |
-| **3. **Al guardar el registro, la solicitud se incorpora automáticamente a la cola general de evaluación compartiendo el mismo flujo y estados que las solicitudes virtuales. |
-| **4. **El revisor solo ve y opera expedientes pertenecientes a su propia región. |
-| **Requisitos funcionales cubiertos: **RF-01, RF-02, RF-12, RF-13, RF-29 |
+| **3. **Cuando el postulante paga los S/1500 en efectivo en la ventanilla, el revisor registra el cobro directamente en el sistema, sin requerir voucher externo ni pasarela digital. El sistema genera un comprobante interno imprimible (RF-32) que se entrega al postulante. |
+| **4. **Si el postulante llegó con un voucher bancario físico, el revisor digitaliza el voucher y lo adjunta al expediente como evidencia de pago. |
+| **5. **Si el postulante no posee correo electrónico, el revisor registra un canal de contacto alterno (teléfono o presencia en ventanilla) para la notificación de observaciones; se prioriza, en todo caso, capturar al menos un correo de un familiar o representante. |
+| **6. **Al guardar el registro, la solicitud se incorpora automáticamente a la cola general de evaluación compartiendo el mismo flujo y estados que las solicitudes virtuales. |
+| **7. **El revisor solo ve y opera expedientes pertenecientes a su propia región. |
+| **Requisitos funcionales cubiertos: **RF-01, RF-02, RF-10, RF-12, RF-13, RF-29, RF-31, RF-32 |
 
 | **HISTORIA DE USUARIO** |
 | --- |
@@ -122,16 +126,17 @@ Se conservan los códigos US-01 a US-10 por trazabilidad respecto al documento o
 
 | **HISTORIA DE USUARIO** |
 | --- |
-| **Código:** | US-06 | **Título:** | Subsanación de expedientes observados |
+| **Código:** | US-06 | **Título:** | Subsanación de expedientes observados (virtual o presencial) |
 | **Prioridad:** | 2 | **Puntos:** | 5 |
 | **Descripción:** |
-| Como postulante, quiero un canal de reintento para corregir mis datos erróneos y volver a enviarlos sin reiniciar todo el trámite ni pagar nuevamente. |
+| Como postulante, quiero un canal de reintento para corregir mis datos erróneos y volver a enviarlos sin reiniciar todo el trámite ni pagar nuevamente, ya sea por la plataforma o presentándome físicamente en la oficina del revisor. |
 | **Criterios de aceptación:** |
 | **1. **El correo de notificación incluye un enlace que redirige al postulante a su formulario original, manteniendo visibles y editables únicamente los campos o documentos que fueron observados. |
 | **2. **El postulante puede modificar los campos observados, subir los archivos corregidos y reenviar la solicitud. |
-| **3. **Al confirmar el reenvío, el estado del expediente cambia automáticamente a pendiente de revisión, sin aplicar cobros adicionales (no se vuelve a cobrar los S/1500 ni recargos). |
-| **4. **No existe un límite explícito de intentos de reenvío en el MVP. |
-| **Requisitos funcionales cubiertos: **RF-17, RF-18 |
+| **3. **Alternativamente, el postulante puede acercarse físicamente al Revisor Regional con los documentos corregidos. El revisor reemplaza los archivos observados en el expediente desde su panel administrativo, sin alterar los documentos que ya estaban conformes. |
+| **4. **Tanto la subsanación virtual como la presencial cambian automáticamente el estado del expediente a pendiente de revisión, sin aplicar cobros adicionales (no se vuelve a cobrar los S/1500 ni recargos). |
+| **5. **No existe un límite explícito de intentos de reenvío en el MVP. |
+| **Requisitos funcionales cubiertos: **RF-17, RF-18, RF-33 |
 
 | **HISTORIA DE USUARIO** |
 | --- |
@@ -170,8 +175,8 @@ Se conservan los códigos US-01 a US-10 por trazabilidad respecto al documento o
 | **1. **La vista pública de pagos identifica al colegiado por DNI o código y muestra el monto adeudado calculado como S/20 multiplicado por el número de meses pendientes. |
 | **2. **La obligación de pago empieza a contar a partir del mes siguiente al de la aprobación del expediente. |
 | **3. **La transacción puede registrarse cualquier día calendario del mes corriente. |
-| **4. **El colegiado puede pagar mediante la pasarela integrada o cargando un voucher de banco externo; ambas modalidades se aceptan. |
-| **5. **Al confirmarse el abono, el sistema extiende la vigencia de la habilitación hasta el último día del mes pagado. |
+| **4. **El colegiado puede pagar mediante la pasarela integrada o cargando un voucher de banco externo. Como tercera vía, puede acercarse al Revisor Regional y pagar en efectivo en ventanilla (ver US-11). |
+| **5. **Al confirmarse el abono por cualquiera de las tres modalidades, el sistema extiende la vigencia de la habilitación hasta el último día del mes pagado. |
 | **Requisitos funcionales cubiertos: **RF-10, RF-22, RF-23, RF-24, RF-28 |
 
 | **HISTORIA DE USUARIO** |
@@ -188,6 +193,21 @@ Se conservan los códigos US-01 a US-10 por trazabilidad respecto al documento o
 | **5. **Tanto la imposición como el retiro de la marca de agua son automáticos: no requieren intervención del revisor. |
 | **Requisitos funcionales cubiertos: **RF-22, RF-24, RF-25, RF-26, RF-27, RF-28 |
 
+| **HISTORIA DE USUARIO** |
+| --- |
+| **Código:** | US-11 | **Título:** | Registro de pagos en ventanilla por el Revisor Regional |
+| **Prioridad:** | 2 | **Puntos:** | 5 |
+| **Descripción:** |
+| Como Revisor Regional, quiero registrar en el sistema los pagos en efectivo que recibo en ventanilla (inscripción o mensualidades), para que el estado del postulante o colegiado se actualice de inmediato y quede respaldado por un comprobante imprimible. |
+| **Criterios de aceptación:** |
+| **1. **El panel del revisor incluye un módulo de pagos presenciales que permite identificar al pagador por DNI (en proceso de inscripción) o por DNI o código de colegiado (mensualidades). |
+| **2. **El módulo permite registrar un pago único de S/1500 por inscripción, o S/20 multiplicado por la cantidad de meses adeudados (sin recargos ni intereses), seleccionando explícitamente los periodos cubiertos. |
+| **3. **Al confirmar el cobro, el sistema genera automáticamente un comprobante interno imprimible con folio correlativo único, fecha y hora, monto, concepto, datos del pagador, región y datos del revisor que recibió el pago (ver RF-32). |
+| **4. **El registro presencial dispara las mismas actualizaciones automáticas que un pago digital: en inscripción libera el trámite del bloqueo por falta de comprobante; en mensualidades extiende la habilitación y retira la marca de agua "inhabilitado/morón" si correspondía. |
+| **5. **Cada transacción presencial queda vinculada en la bitácora al revisor que la capturó, su región y la fecha-hora exacta del registro, para fines de auditoría (RF-30). |
+| **6. **El revisor solo puede registrar pagos asociados a postulantes o colegiados de su propia región. |
+| **Requisitos funcionales cubiertos: **RF-10, RF-22, RF-23, RF-24, RF-27, RF-30, RF-31, RF-32 |
+
 # 6. Requisitos funcionales finales
 
 Lista consolidada después de aplicar las resoluciones de la sección 3. Se conserva la numeración original (RF-01 a RF-30) por trazabilidad. Los requisitos eliminados (RF-06 y RF-09) se indican expresamente y se conserva el espacio del código para no romper referencias previas.
@@ -203,27 +223,30 @@ Lista consolidada después de aplicar las resoluciones de la sección 3. Se cons
 | **RF-07** | Carga de fotografía | El sistema debe permitir cargar una fotografía digital validando parámetros estrictos: formato (JPG/PNG), resolución, tamaño máximo, ratio 3:4 y fondo requerido. |
 | **RF-08** | Carga de título profesional en PDF | El sistema debe permitir cargar el título profesional exclusivamente en formato PDF, con un tamaño máximo definido. |
 | **RF-09** | [ELIMINADO] Verificación automática del título | Eliminado. La verificación del título es manual por parte del revisor en el primer sprint (entrevista P2). No se integra SUNEDU ni otra API de diplomas en el MVP. |
-| **RF-10** | Pago de inscripción y mensualidad (pasarela + voucher) | El sistema debe aceptar dos modalidades para el cobro del derecho de inscripción de S/1500 y de las mensualidades de S/20: pago en pasarela integrada (con comprobante generado por el sistema) y carga manual de voucher de banco externo. |
+| **RF-10** | Pago de inscripción y mensualidad (pasarela, voucher y efectivo) | El sistema debe aceptar tres modalidades para el cobro del derecho de inscripción de S/1500 y de las mensualidades de S/20: (a) pago en pasarela integrada, con comprobante generado por el sistema; (b) carga manual de voucher de banco externo, validada por el revisor; (c) pago en efectivo recibido en ventanilla por el Revisor Regional, registrado en el sistema y respaldado por un comprobante interno imprimible (ver RF-31 y RF-32). |
 | **RF-11** | Validación de expediente completo | El sistema debe impedir el envío de la solicitud mientras existan campos obligatorios o documentos faltantes o que no cumplan los parámetros establecidos. |
-| **RF-12** | Registro físico de expedientes por el revisor | El sistema debe permitir que el Revisor Regional registre y digitalice los expedientes presentados de manera física en su región, incorporándolos al mismo flujo que los virtuales. |
+| **RF-12** | Registro físico de expedientes por el revisor | El sistema debe permitir que el Revisor Regional registre y digitalice los expedientes presentados de manera física en su región, incorporándolos al mismo flujo que los virtuales, incluyendo la captura del pago de inscripción cuando este se realiza en efectivo en ventanilla. |
 | **RF-13** | Bandeja de revisión de expedientes | El sistema debe mostrar al revisor una lista organizada de las postulaciones pendientes de evaluación de su región. |
 | **RF-14** | Visualización de documentos del expediente | El sistema debe permitir visualizar a pantalla completa la fotografía, el diploma en PDF y, cuando aplique, el comprobante de pago de cada expediente. |
 | **RF-15** | Registro de observaciones | El revisor debe poder registrar observaciones detalladas (texto obligatorio) sobre documentos incorrectos o incompletos. |
 | **RF-16** | Notificación de observaciones por correo | El sistema debe enviar automáticamente un correo electrónico al postulante con el texto íntegro de la observación registrada por el revisor. |
-| **RF-17** | Subsanación de expedientes observados | El postulante debe poder modificar únicamente los documentos o campos observados y reenviar su solicitud sin nuevos cobros. |
+| **RF-17** | Subsanación de expedientes observados | El postulante debe poder modificar únicamente los documentos o campos observados y reenviar su solicitud sin nuevos cobros, ya sea por el formulario virtual o presentando los documentos corregidos al Revisor Regional en ventanilla (ver RF-33). |
 | **RF-18** | Estados del expediente | El sistema debe manejar los estados: Pendiente, En revisión, Observado, Subsanado, Aprobado, Rechazado. |
 | **RF-19** | Generación del código de colegiado por (región, carrera) | Al aprobar una solicitud y tras la asignación de la carrera por el revisor, el sistema debe generar automáticamente un código de colegiado de 5 dígitos, único y correlativo dentro de la combinación (Región, Carrera). La generación debe ejecutarse en transacción con bloqueo para evitar duplicados. |
 | **RF-20** | Emisión automática del carnet virtual | Al aprobar un expediente, el sistema debe generar y enviar por correo el carnet virtual del nuevo colegiado, con foto, nombres, carrera y código. |
 | **RF-21** | Acceso público al carnet (sin autenticación) | La plataforma debe exponer una vista pública en la que, ingresando el DNI o el código de colegiado, cualquier persona pueda visualizar y descargar el carnet. No existe usuario ni contraseña. |
 | **RF-22** | Inicio del cobro mensual | El sistema debe comenzar a generar cuotas mensuales de S/20 a partir del mes siguiente al de la aprobación del expediente del colegiado. |
-| **RF-23** | Registro público de pagos mensuales | El colegiado debe poder registrar el pago de mensualidades mediante la vista pública (identificándose por DNI o código), usando pasarela integrada o carga de voucher. |
+| **RF-23** | Registro de pagos mensuales por cualquiera de los tres canales | El colegiado debe poder registrar el pago de mensualidades por: (a) pasarela integrada o (b) voucher de banco externo desde la vista pública (identificándose por DNI o código); o (c) en efectivo en ventanilla, en cuyo caso el registro lo efectúa el Revisor Regional a nombre del colegiado siguiendo RF-31. |
 | **RF-24** | Cálculo automático de deuda sin recargos | El sistema debe calcular el total adeudado multiplicando los meses pendientes por S/20, sin intereses, recargos ni penalidades adicionales. |
 | **RF-25** | Cambio automático a estado Inhabilitado | Si al concluir el último día del mes en curso no se registra el abono, el sistema cambia automáticamente la condición del colegiado a inhabilitado. |
 | **RF-26** | Aplicación de marca de agua "inhabilitado/morón" | Mientras la condición del colegiado sea inhabilitado, toda visualización del carnet debe superponer una marca de agua cruzada con el texto literal "inhabilitado/morón". |
 | **RF-27** | Rehabilitación automática inmediata | Al regularizar la totalidad de la deuda, el sistema debe restaurar de inmediato el estado habilitado y eliminar la marca de agua del carnet, sin intervención del revisor. |
 | **RF-28** | Historial público de pagos y habilitación | Desde la misma vista pública (DNI o código), cualquier persona debe poder consultar los pagos realizados, los meses adeudados y el estado de habilitación del colegiado. |
 | **RF-29** | Gestión de un revisor por región | El sistema debe administrar un único usuario revisor por cada región del país, con acceso restringido a los expedientes y colegiados de su propia región. |
-| **RF-30** | Auditoría básica de acciones | El sistema debe registrar acciones relevantes: aprobaciones, observaciones, pagos, cambios de estado y asignación de carrera. La auditoría es básica, acorde con el alcance del MVP. |
+| **RF-30** | Auditoría básica de acciones | El sistema debe registrar acciones relevantes: aprobaciones, observaciones, pagos (digitales y presenciales), cambios de estado y asignación de carrera. Cada registro debe incluir el actor (revisor o sistema), la región y la fecha-hora. La auditoría es básica, acorde con el alcance del MVP. |
+| **RF-31** | Registro de pago presencial por el revisor | El sistema debe permitir al Revisor Regional registrar pagos en efectivo recibidos en ventanilla (inscripción o mensualidades), asociando cada transacción al postulante o colegiado por DNI o código, y al revisor que la capturó. El registro debe disparar inmediatamente las mismas actualizaciones de estado que cualquier otro pago: liberación del trámite de inscripción (RF-11) o rehabilitación con retiro de la marca de agua (RF-27). Solo el revisor de la región del pagador puede registrar el pago. |
+| **RF-32** | Comprobante interno imprimible de pago presencial | Al registrarse un pago en ventanilla (modalidad (c) de RF-10), el sistema debe generar un comprobante interno imprimible con: folio correlativo único, fecha y hora, monto, concepto (inscripción o periodo(s) mensual(es) específico(s)), DNI y nombres del pagador, código de colegiado cuando aplique, región y datos del revisor receptor. El comprobante debe descargarse en formato PDF para impresión inmediata y entregarse al pagador. |
+| **RF-33** | Subsanación presencial atendida por el revisor | El postulante observado debe poder subsanar su expediente entregando los documentos corregidos físicamente al Revisor Regional, quien reemplazará los archivos observados en el sistema desde su panel administrativo. El reenvío resultante sigue el mismo flujo de RF-17 sin costos adicionales y deja el expediente en estado pendiente de revisión. |
 
 # 7. Requisitos no funcionales finales
 
@@ -245,7 +268,7 @@ Se ajustan los RNF de seguridad y de integraciones externas para reflejar el alc
 | **RNF-12** | Integridad del código de colegiado | El sistema debe garantizar que no existan códigos de colegiado duplicados dentro de la combinación (Región, Carrera), aplicando bloqueo transaccional en la generación. |
 | **RNF-13** | Mantenibilidad y modularidad | El sistema debe desarrollarse con arquitectura modular: separación clara entre frontend (Next.js en Vercel) y backend (Express en Railway), uso de Prisma como capa ORM. |
 | **RNF-14** | Disponibilidad de archivos cargados | Los archivos cargados (foto, título PDF, voucher) deben almacenarse en Cloudinary y permanecer disponibles para consulta posterior por parte del revisor y para renderizado del carnet. |
-| **RNF-15** | Automatización de notificaciones por correo | El sistema debe enviar automáticamente correos electrónicos para: observación de expediente, aprobación con emisión de carnet y confirmación de pago (inscripción y mensualidades). |
+| **RNF-15** | Automatización de notificaciones y comprobantes | El sistema debe enviar automáticamente correos electrónicos para: observación de expediente, aprobación con emisión de carnet y confirmación de pago (inscripción y mensualidades, independientemente del canal usado). Para pagos en ventanilla, además del correo, se genera un comprobante imprimible al instante (RF-32) que el revisor entrega físicamente al pagador. |
 
 # 8. Matriz de trazabilidad Historia ↔ Requisitos
 
@@ -255,14 +278,15 @@ Resumen rápido de la cobertura mutua entre historias y requisitos funcionales. 
 | --- | --- | --- |
 | **US-01** | Validación de identidad por DNI | RF-02, RF-03, RF-04 |
 | **US-02** | Carga y envío del expediente | RF-01, RF-05, RF-07, RF-08, RF-10, RF-11 |
-| **US-03** | Registro manual de solicitudes físicas | RF-01, RF-02, RF-12, RF-13, RF-29 |
+| **US-03** | Registro manual de solicitudes y pagos en ventanilla | RF-01, RF-02, RF-10, RF-12, RF-13, RF-29, RF-31, RF-32 |
 | **US-04** | Auditoría y asignación de carrera | RF-13, RF-14, RF-18, RF-29 |
 | **US-05** | Emisión de observaciones | RF-15, RF-16, RF-18 |
-| **US-06** | Subsanación de expedientes | RF-17, RF-18 |
+| **US-06** | Subsanación de expedientes (virtual o presencial) | RF-17, RF-18, RF-33 |
 | **US-07** | Concesión y código (región, carrera) | RF-18, RF-19 |
 | **US-08** | Carnet público sin autenticación | RF-20, RF-21 |
-| **US-09** | Pago de mensualidades | RF-10, RF-22, RF-23, RF-24, RF-28 |
+| **US-09** | Pago de mensualidades (vía digital) | RF-10, RF-22, RF-23, RF-24, RF-28 |
 | **US-10** | Habilitación / morosidad y rehabilitación | RF-22, RF-24, RF-25, RF-26, RF-27, RF-28 |
+| **US-11** | Registro de pagos en ventanilla por el revisor | RF-10, RF-22, RF-23, RF-24, RF-27, RF-30, RF-31, RF-32 |
 
 ## Notas finales
 
@@ -273,3 +297,6 @@ Resumen rápido de la cobertura mutua entre historias y requisitos funcionales. 
 - La marca de agua usa el texto literal "inhabilitado/morón" tal como figura en las indicaciones iniciales del cliente; reformulaciones como "Moroso" no se aplican.
 
 - El cumplimiento estricto de la Ley N° 29733 de Protección de Datos Personales se documenta como deuda técnica para una fase posterior al MVP.
+
+- La modalidad física es un canal de primera clase, equivalente al digital: cualquier postulante o colegiado puede completar todo su ciclo (inscripción, subsanación y pago de mensualidades) acercándose al Revisor Regional de su región, sin que esto requiera funcionalidades distintas a las descritas en US-03, US-06 y US-11.
+
