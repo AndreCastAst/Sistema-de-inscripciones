@@ -30,7 +30,7 @@ El MVP no contempla medidas de seguridad estrictas (acuerdo con el cliente), no 
 
 - Cobro mensual de S/20 a partir del mes siguiente al registro.
 
-- Aplicación automática de marca de agua "inhabilitado/morón" sobre el carnet.
+- Aplicación automática de marca de agua "inhabilitado" sobre el carnet.
 
 - Rehabilitación inmediata al regularizar deuda, sin penalidades ni intereses.
 

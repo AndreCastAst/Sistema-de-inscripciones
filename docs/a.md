@@ -37,7 +37,7 @@ La siguiente tabla resume las contradicciones detectadas entre los documentos de
 | Estructura del código de colegiado | Las indicaciones iniciales decían "5 dígitos único secuencial" (sugiere global). | Entrevista (P4): el código es por región y carrera. | El código es de 5 dígitos, único y correlativo dentro de cada combinación (Región, Carrera). No es global. |
 | Autenticación de colegiados | US-08, US-09, RF-21 y RF-23 implicaban un "portal del colegiado" con sesión iniciada. | Entrevista (P7): no hay usuario ni contraseña; la información es pública para todos. | Se elimina toda autenticación del colegiado. El acceso al carnet, historial y registro de pagos es público y se realiza ingresando el DNI o el código de colegiado. |
 | Formato y enriquecimiento del carnet | Las historias preliminares dejaban abierta la posibilidad de QR, fecha de vencimiento u otros. | Entrevista (P5): carnet digital simple; QR y fecha de vencimiento se consideraron no necesarios. | El carnet es digital simple. No incluye código QR de verificación ni fecha de vencimiento visible. El estado de habilitación se evalúa en tiempo real. |
-| Texto exacto de la marca de agua | RF-26 reescribió la marca como "Inhabilitado/Moroso". | Indicaciones iniciales: texto literal "inhabilitado/morón". La entrevista no contradice ese literal. | Se mantiene el texto literal de las indicaciones iniciales: "inhabilitado/morón". |
+| Texto exacto de la marca de agua | RF-26 reescribió la marca como "Inhabilitado". | Indicaciones iniciales: texto literal "inhabilitado". La entrevista no contradice ese literal. | Se mantiene el texto literal de las indicaciones iniciales: "inhabilitado". |
 | Canal de notificación al postulante | US-02 exigía específicamente una cuenta de Gmail. | Entrevista (P5): notificación por un medio a elección. | Se generaliza a correo electrónico (cualquier proveedor). No se exige Gmail. |
 | Medidas de seguridad estrictas y Ley 29733 | RNF-01 y RF-30 incluían cifrado, autenticación y auditoría detallada. | Entrevista (P9): el PMV no contempla medidas de seguridad estrictas. | El PMV no implementa cifrado avanzado, ni controles de protección de datos personales según Ley 29733. Se documenta como deuda técnica para una fase posterior. |
 | Cobertura del flujo físico | El flujo físico cubría solo la digitalización de documentos por el revisor (US-03). Pagos asumían canal digital (pasarela o voucher) y la subsanación se planteaba únicamente vía enlace por correo. | Aclaración posterior del cliente: el sistema debe ser válido y adaptable a un entorno físico completo, donde el revisor recibe documentos y pagos en ventanilla. | Se amplía US-03 (captura de pago en efectivo), se agrega US-11 (registro de pagos en ventanilla), se amplía US-06 (subsanación presencial). RF-10 pasa a tres modalidades de pago. Se incorporan RF-31, RF-32 y RF-33. |
@@ -181,13 +181,13 @@ Se conservan los códigos US-01 a US-10 por trazabilidad respecto al documento o
 
 | **HISTORIA DE USUARIO** |
 | --- |
-| **Código:** | US-10 | **Título:** | Condición del carnet (habilitación vs morosidad) y regularización |
+| **Código:** | US-10 | **Título:** | Condición del carnet (habilitación vs inhabilitación) y regularización |
 | **Prioridad:** | 2 | **Puntos:** | 5 |
 | **Descripción:** |
 | Como colegiado, quiero que mi carnet refleje en tiempo real mi estado de habilitación y que la regularización del pago levante automáticamente la marca de inhabilitación. |
 | **Criterios de aceptación:** |
 | **1. **Si al concluir el último día del mes en curso no se registra el abono de la mensualidad, el sistema cambia la condición del colegiado a inhabilitado de forma automática. |
-| **2. **Mientras la condición sea inhabilitado, cualquier visualización pública del carnet superpone, de forma indeleble, una marca de agua cruzada con el texto literal "inhabilitado/morón". |
+| **2. **Mientras la condición sea inhabilitado, cualquier visualización pública del carnet superpone, de forma indeleble, una marca de agua cruzada con el texto literal "inhabilitado". |
 | **3. **El módulo de pagos consolida los meses adeudados y calcula la liquidación como (meses pendientes × S/20), sin intereses, recargos ni penalidades. |
 | **4. **En el instante en que se liquida la deuda total acumulada, el estado cambia a habilitado y cualquier nueva consulta del carnet lo muestra limpio, sin la marca de agua. |
 | **5. **Tanto la imposición como el retiro de la marca de agua son automáticos: no requieren intervención del revisor. |
@@ -203,7 +203,7 @@ Se conservan los códigos US-01 a US-10 por trazabilidad respecto al documento o
 | **1. **El panel del revisor incluye un módulo de pagos presenciales que permite identificar al pagador por DNI (en proceso de inscripción) o por DNI o código de colegiado (mensualidades). |
 | **2. **El módulo permite registrar un pago único de S/1500 por inscripción, o S/20 multiplicado por la cantidad de meses adeudados (sin recargos ni intereses), seleccionando explícitamente los periodos cubiertos. |
 | **3. **Al confirmar el cobro, el sistema genera automáticamente un comprobante interno imprimible con folio correlativo único, fecha y hora, monto, concepto, datos del pagador, región y datos del revisor que recibió el pago (ver RF-32). |
-| **4. **El registro presencial dispara las mismas actualizaciones automáticas que un pago digital: en inscripción libera el trámite del bloqueo por falta de comprobante; en mensualidades extiende la habilitación y retira la marca de agua "inhabilitado/morón" si correspondía. |
+| **4. **El registro presencial dispara las mismas actualizaciones automáticas que un pago digital: en inscripción libera el trámite del bloqueo por falta de comprobante; en mensualidades extiende la habilitación y retira la marca de agua "inhabilitado" si correspondía. |
 | **5. **Cada transacción presencial queda vinculada en la bitácora al revisor que la capturó, su región y la fecha-hora exacta del registro, para fines de auditoría (RF-30). |
 | **6. **El revisor solo puede registrar pagos asociados a postulantes o colegiados de su propia región. |
 | **Requisitos funcionales cubiertos: **RF-10, RF-22, RF-23, RF-24, RF-27, RF-30, RF-31, RF-32 |
@@ -239,7 +239,7 @@ Lista consolidada después de aplicar las resoluciones de la sección 3. Se cons
 | **RF-23** | Registro de pagos mensuales por cualquiera de los tres canales | El colegiado debe poder registrar el pago de mensualidades por: (a) pasarela integrada o (b) voucher de banco externo desde la vista pública (identificándose por DNI o código); o (c) en efectivo en ventanilla, en cuyo caso el registro lo efectúa el Revisor Regional a nombre del colegiado siguiendo RF-31. |
 | **RF-24** | Cálculo automático de deuda sin recargos | El sistema debe calcular el total adeudado multiplicando los meses pendientes por S/20, sin intereses, recargos ni penalidades adicionales. |
 | **RF-25** | Cambio automático a estado Inhabilitado | Si al concluir el último día del mes en curso no se registra el abono, el sistema cambia automáticamente la condición del colegiado a inhabilitado. |
-| **RF-26** | Aplicación de marca de agua "inhabilitado/morón" | Mientras la condición del colegiado sea inhabilitado, toda visualización del carnet debe superponer una marca de agua cruzada con el texto literal "inhabilitado/morón". |
+| **RF-26** | Aplicación de marca de agua "inhabilitado" | Mientras la condición del colegiado sea inhabilitado, toda visualización del carnet debe superponer una marca de agua cruzada con el texto literal "inhabilitado". |
 | **RF-27** | Rehabilitación automática inmediata | Al regularizar la totalidad de la deuda, el sistema debe restaurar de inmediato el estado habilitado y eliminar la marca de agua del carnet, sin intervención del revisor. |
 | **RF-28** | Historial público de pagos y habilitación | Desde la misma vista pública (DNI o código), cualquier persona debe poder consultar los pagos realizados, los meses adeudados y el estado de habilitación del colegiado. |
 | **RF-29** | Gestión de un revisor por región | El sistema debe administrar un único usuario revisor por cada región del país, con acceso restringido a los expedientes y colegiados de su propia región. |
@@ -285,7 +285,7 @@ Resumen rápido de la cobertura mutua entre historias y requisitos funcionales. 
 | **US-07** | Concesión y código (región, carrera) | RF-18, RF-19 |
 | **US-08** | Carnet público sin autenticación | RF-20, RF-21 |
 | **US-09** | Pago de mensualidades (vía digital) | RF-10, RF-22, RF-23, RF-24, RF-28 |
-| **US-10** | Habilitación / morosidad y rehabilitación | RF-22, RF-24, RF-25, RF-26, RF-27, RF-28 |
+| **US-10** | Habilitación / inhabilitación y rehabilitación | RF-22, RF-24, RF-25, RF-26, RF-27, RF-28 |
 | **US-11** | Registro de pagos en ventanilla por el revisor | RF-10, RF-22, RF-23, RF-24, RF-27, RF-30, RF-31, RF-32 |
 
 ## Notas finales
@@ -294,7 +294,7 @@ Resumen rápido de la cobertura mutua entre historias y requisitos funcionales. 
 
 - Cualquier referencia previa a Gmail como canal único de notificación debe leerse como "correo electrónico" sin restricción de proveedor.
 
-- La marca de agua usa el texto literal "inhabilitado/morón" tal como figura en las indicaciones iniciales del cliente; reformulaciones como "Moroso" no se aplican.
+- La marca de agua usa el texto literal "inhabilitado" tal como figura en las indicaciones iniciales del cliente.
 
 - El cumplimiento estricto de la Ley N° 29733 de Protección de Datos Personales se documenta como deuda técnica para una fase posterior al MVP.
 
