@@ -9,3 +9,6 @@ dist/
 # Archivos con credenciales y contexto interno (no subir a GitHub)
 APIS.docx
 Contexto_Aportes_entrevista.md
+
+# Configuración local de Railway CLI
+.railway/
