@@ -5,3 +5,7 @@ dist/
 *.log
 .DS_Store
 .next/
+
+# Archivos con credenciales y contexto interno (no subir a GitHub)
+APIS.docx
+Contexto_Aportes_entrevista.md

@@ -8,40 +8,42 @@ datasource db {
 }
 
 model Region {
-  id           Int           @id @default(autoincrement())
-  nombre       String        @unique
+  id            Int           @id @default(autoincrement())
+  nombre        String        @unique
   postulaciones Postulacion[]
-  colegiados   Colegiado[]
-  revisores    Revisor[]
-  secuencias   Secuencia[]
+  colegiados    Colegiado[]
+  revisores     Revisor[]
+  secuencias    Secuencia[]
 }
 
 model Carrera {
-  id           Int           @id @default(autoincrement())
-  nombre       String        @unique
+  id            Int           @id @default(autoincrement())
+  nombre        String        @unique
   postulaciones Postulacion[]
-  colegiados   Colegiado[]
-  secuencias   Secuencia[]
+  colegiados    Colegiado[]
+  secuencias    Secuencia[]
 }
 
 model Postulacion {
-  id           Int           @id @default(autoincrement())
-  dni          String
-  nombres      String
+  id              Int               @id @default(autoincrement())
+  dni             String
+  nombres         String
   apellidoPaterno String
   apellidoMaterno String
-  gmail        String
-  fotoUrl      String?
-  tituloUrl    String?
-  voucherUrl   String?
-  estado       EstadoPostulacion @default(PENDIENTE)
-  regionId     Int
-  carreraId    Int
-  region       Region        @relation(fields: [regionId], references: [id])
-  carrera      Carrera       @relation(fields: [carreraId], references: [id])
-  observaciones Observacion[]
-  creadoEn     DateTime      @default(now())
-  actualizadoEn DateTime     @updatedAt
+  gmail           String
+  fotoUrl         String?
+  tituloUrl       String?
+  voucherUrl      String?
+  estado          EstadoPostulacion @default(PENDIENTE)
+  esFisico        Boolean           @default(false)
+  regionId        Int
+  carreraId       Int
+  region          Region            @relation(fields: [regionId], references: [id])
+  carrera         Carrera           @relation(fields: [carreraId], references: [id])
+  observaciones   Observacion[]
+  colegiado       Colegiado?
+  creadoEn        DateTime          @default(now())
+  actualizadoEn   DateTime          @updatedAt
 }
 
 model Observacion {
@@ -55,46 +57,51 @@ model Observacion {
 }
 
 model Colegiado {
-  id          Int           @id @default(autoincrement())
-  codigo      String        @unique
-  dni         String        @unique
-  nombres     String
+  id              Int           @id @default(autoincrement())
+  codigo          String        @unique
+  dni             String        @unique
+  nombres         String
   apellidoPaterno String
   apellidoMaterno String
-  regionId    Int
-  carreraId   Int
-  fotoUrl     String?
-  fechaAlta   DateTime      @default(now())
-  habilitado  Boolean       @default(true)
-  region      Region        @relation(fields: [regionId], references: [id])
-  carrera     Carrera       @relation(fields: [carreraId], references: [id])
-  mensualidades Mensualidad[]
+  gmail           String
+  postulacionId   Int           @unique
+  postulacion     Postulacion   @relation(fields: [postulacionId], references: [id])
+  regionId        Int
+  carreraId       Int
+  fotoUrl         String?
+  fechaAlta       DateTime      @default(now())
+  region          Region        @relation(fields: [regionId], references: [id])
+  carrera         Carrera       @relation(fields: [carreraId], references: [id])
+  mensualidades   Mensualidad[]
 }
 
 model Mensualidad {
-  id          Int       @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   colegiadoId Int
-  periodo     String    // YYYY-MM
-  monto       Float     @default(20)
+  periodo     String      // YYYY-MM
+  monto       Float       @default(20)
   pagadoEn    DateTime?
-  colegiado   Colegiado @relation(fields: [colegiadoId], references: [id])
+  metodoPago  MetodoPago?
+  voucherUrl  String?
+  mpPaymentId String?
+  colegiado   Colegiado   @relation(fields: [colegiadoId], references: [id])
 
   @@unique([colegiadoId, periodo])
 }
 
 model Revisor {
-  id           Int           @id @default(autoincrement())
-  nombres      String
-  regionId     Int
-  region       Region        @relation(fields: [regionId], references: [id])
+  id            Int           @id @default(autoincrement())
+  nombres       String
+  regionId      Int
+  region        Region        @relation(fields: [regionId], references: [id])
   observaciones Observacion[]
 }
 
 model Secuencia {
-  id        Int @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   regionId  Int
   carreraId Int
-  ultimo    Int @default(0)
+  ultimo    Int     @default(0)
   region    Region  @relation(fields: [regionId], references: [id])
   carrera   Carrera @relation(fields: [carreraId], references: [id])
 
@@ -107,13 +114,20 @@ model Auditoria {
   entidad   String
   entidadId Int
   actorId   Int?
+  detalle   String?
   fecha     DateTime @default(now())
 }
 
 enum EstadoPostulacion {
   PENDIENTE
+  EN_REVISION
   OBSERVADO
   SUBSANADO
   APROBADO
   RECHAZADO
+}
+
+enum MetodoPago {
+  MERCADOPAGO
+  VOUCHER
 }
