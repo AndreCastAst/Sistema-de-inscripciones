@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { getNombre, logout } from "@/lib/auth";
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const nombre = getNombre() ?? "Administrador";
+
+  function handleLogout() {
+    logout();
+    router.replace("/revisor/login");
+  }
 
   const navItem = (href: string, icon: string, label: string) => {
     const activo =
@@ -40,8 +48,8 @@ export function AdminSidebar() {
             <span className="text-on-primary font-bold text-sm">RA</span>
           </div>
           <div>
-            <h2 className="text-[15px] font-semibold text-primary">Revisor Regional</h2>
-            <p className="text-[13px] text-on-surface-variant">Consejo Departamental Lima</p>
+            <h2 className="text-[15px] font-semibold text-primary">{nombre}</h2>
+            <p className="text-[13px] text-on-surface-variant">Panel Administrativo</p>
           </div>
         </div>
       </div>
@@ -55,13 +63,13 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="mt-auto px-sm flex flex-col gap-unit pt-md border-t border-outline-variant">
-        <Link
-          href="/"
-          className="mx-sm px-md py-sm rounded-lg text-[15px] font-medium flex items-center gap-md transition-all hover:bg-secondary-container"
+        <button
+          onClick={handleLogout}
+          className="mx-sm px-md py-sm rounded-lg text-[15px] font-medium flex items-center gap-md transition-all hover:bg-secondary-container w-full text-left"
         >
           <span className="material-symbols-outlined text-error">logout</span>
           <span className="text-error">Cerrar Sesión</span>
-        </Link>
+        </button>
       </div>
     </nav>
   );

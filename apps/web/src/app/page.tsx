@@ -291,17 +291,15 @@ export default function HomePage() {
                 ¡Solicitud enviada con éxito!
               </h2>
               <p className="text-[15px] text-on-surface-variant max-w-sm mx-auto">
-                Tu expediente N°{" "}
-                <strong className="text-on-surface font-semibold">{expedienteId}</strong> ha sido
-                recibido. Un revisor de tu región lo evaluará y recibirás una notificación por
-                correo electrónico.
+                Tu expediente ha sido recibido. Un revisor de tu región lo evaluará y recibirás
+                una notificación por correo electrónico.
               </p>
-              <button
-                onClick={resetFormulario}
-                className="bg-primary text-on-primary text-[15px] font-semibold px-lg py-2.5 rounded-lg hover:brightness-110 transition-all shadow-sm"
+              <a
+                href="/"
+                className="inline-block bg-primary text-on-primary text-[15px] font-semibold px-lg py-2.5 rounded-lg hover:brightness-110 transition-all shadow-sm"
               >
-                Nueva solicitud
-              </button>
+                Salir
+              </a>
             </div>
           </div>
         </main>

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -87,7 +88,14 @@ async function main() {
     }
   }
 
-  console.log("Catálogos sembrados: 25 regiones, 20 carreras, 3 revisores.");
+  const passwordHash = await bcrypt.hash("12345", 10);
+  await prisma.usuario.upsert({
+    where: { username: "admin" },
+    update: {},
+    create: { username: "admin", passwordHash, nombre: "Administrador", rol: "admin" },
+  });
+
+  console.log("Catálogos sembrados: 25 regiones, 20 carreras, 3 revisores, 1 usuario admin.");
 }
 
 main()

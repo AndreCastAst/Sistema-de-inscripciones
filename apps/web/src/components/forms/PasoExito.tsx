@@ -1,8 +1,4 @@
-interface Props {
-  postulacionId: number;
-}
-
-export function PasoExito({ postulacionId }: Props) {
+export function PasoExito() {
   return (
     <div className="text-center space-y-6 py-8">
       <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto">
@@ -18,11 +14,6 @@ export function PasoExito({ postulacionId }: Props) {
         </p>
       </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded-xl px-6 py-4 inline-block">
-        <p className="text-sm text-gray-500">Número de solicitud</p>
-        <p className="text-3xl font-mono font-bold text-gray-900">#{postulacionId}</p>
-      </div>
-
       <div className="text-sm text-gray-500 space-y-1">
         <p>Recibirás un correo cuando tu expediente sea revisado.</p>
         <p>Si hay observaciones, podrás subsanarlas desde el mismo correo.</p>
@@ -30,9 +21,9 @@ export function PasoExito({ postulacionId }: Props) {
 
       <a
         href="/"
-        className="inline-block mt-4 px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        className="inline-block mt-4 px-8 py-3 bg-primary text-on-primary font-semibold rounded-xl hover:brightness-110 active:scale-95 transition-all"
       >
-        Volver al inicio
+        Salir
       </a>
     </div>
   );

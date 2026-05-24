@@ -6,6 +6,7 @@ import { pagosRoutes } from "./routes/pagos";
 import { carnetRoutes } from "./routes/carnet";
 import { catalogoRoutes } from "./routes/catalogos";
 import { colegiadoRoutes } from "./routes/colegiado";
+import { authRoutes } from "./routes/auth";
 import { errorHandler } from "./middlewares/errorHandler";
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/postulantes", postulanteRoutes);
 app.use("/api/v1/revisor", revisorRoutes);
 app.use("/api/v1/pagos", pagosRoutes);

@@ -41,7 +41,7 @@ export function NavBar({ activeTab = "portal" }: NavBarProps) {
 
         {/* Acceso administrativo */}
         <Link
-          href="/revisor"
+          href="/revisor/login"
           className="hidden md:block text-[15px] font-semibold bg-primary-container text-on-primary px-lg py-2.5 rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-sm"
         >
           Acceso Administrativo

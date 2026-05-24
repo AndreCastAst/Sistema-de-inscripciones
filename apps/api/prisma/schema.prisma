@@ -118,6 +118,15 @@ model Auditoria {
   fecha     DateTime @default(now())
 }
 
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  nombre       String
+  rol          String   @default("admin")
+  creadoEn     DateTime @default(now())
+}
+
 enum EstadoPostulacion {
   PENDIENTE
   EN_REVISION

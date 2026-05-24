@@ -130,7 +130,7 @@ export function FormInscripcion() {
         )}
 
         {paso === "enviado" && postulacionId !== null && (
-          <PasoExito postulacionId={postulacionId} />
+          <PasoExito />
         )}
       </div>
     </div>
