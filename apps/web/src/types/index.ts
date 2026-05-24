@@ -90,7 +90,7 @@ export interface Mensualidad {
 
 export interface PostulacionDetalle extends Postulacion {
   region: Region;
-  carrera: Carrera;
+  carrera: Carrera | null;
   observaciones: Observacion[];
 }
 
@@ -124,7 +124,7 @@ export interface FormDatosPersonales {
   apellidoMaterno: string;
   gmail: string;
   regionId: number;
-  carreraId: number;
+  carreraId?: number;
 }
 
 /** Paso 2 del formulario de inscripción: carga de documentos */

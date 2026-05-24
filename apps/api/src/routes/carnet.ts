@@ -28,11 +28,16 @@ function calcularMorosidad(fechaAlta: Date, pagadas: Set<string>): { moroso: boo
   };
 }
 
-// GET /api/v1/carnet/:codigo — datos del carnet (público)
-router.get("/:codigo", async (req, res, next) => {
+// GET /api/v1/carnet/:query — datos del carnet; acepta DNI (8 dígitos) o código CIP
+router.get("/:query", async (req, res, next) => {
   try {
+    const q = req.params.query;
+
+    // Buscar por DNI si son 8 dígitos numéricos, si no por código CIP
+    const where = /^\d{8}$/.test(q) ? { dni: q } : { codigo: q };
+
     const colegiado = await prisma.colegiado.findUniqueOrThrow({
-      where: { codigo: req.params.codigo },
+      where,
       include: { region: true, carrera: true },
     });
 
@@ -45,15 +50,20 @@ router.get("/:codigo", async (req, res, next) => {
     const { moroso, mesesPendientes, deudaTotal } = calcularMorosidad(colegiado.fechaAlta, pagadas);
 
     res.json({
+      id: colegiado.id,
       codigo: colegiado.codigo,
+      dni: colegiado.dni,
       nombres: colegiado.nombres,
       apellidoPaterno: colegiado.apellidoPaterno,
       apellidoMaterno: colegiado.apellidoMaterno,
-      region: colegiado.region.nombre,
-      carrera: colegiado.carrera.nombre,
+      regionId: colegiado.regionId,
+      carreraId: colegiado.carreraId,
       fotoUrl: colegiado.fotoUrl,
       fechaAlta: colegiado.fechaAlta,
-      moroso,
+      habilitado: !moroso,
+      inhabilitado: moroso,
+      region: colegiado.region,
+      carrera: colegiado.carrera,
       mesesPendientes,
       deudaTotal,
     });

@@ -24,5 +24,5 @@ export function subirImagen(file: File): Promise<string> {
 }
 
 export function subirPDF(file: File): Promise<string> {
-  return subir(file, "raw");
+  return subir(file, "image");
 }

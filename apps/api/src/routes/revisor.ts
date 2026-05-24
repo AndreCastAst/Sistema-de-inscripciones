@@ -4,31 +4,53 @@ import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { generarCodigo } from "../services/correlativo";
 import { enviarObservacion, enviarAprobacion } from "../services/email";
+import { firmarUrl } from "../services/cloudinary";
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/v1/revisor/bandeja?regionId=1&estado=PENDIENTE
+// GET /api/v1/revisor/bandeja?page=1&search=xxx&estado=PENDIENTE
 router.get("/bandeja", async (req, res, next) => {
   try {
-    const regionId = req.query.regionId ? Number(req.query.regionId) : undefined;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = 20;
+    const skip = (page - 1) * limit;
+    const search = (req.query.search as string | undefined)?.trim();
     const estado = (req.query.estado as string | undefined) ?? undefined;
+    const regionId = req.query.regionId ? Number(req.query.regionId) : undefined;
 
-    const postulaciones = await prisma.postulacion.findMany({
-      where: {
-        estado: estado
-          ? (estado as any)
-          : { in: ["PENDIENTE", "EN_REVISION", "SUBSANADO"] },
-        ...(regionId && { regionId }),
-      },
-      include: {
-        region: true,
-        carrera: true,
-        observaciones: { orderBy: { creadoEn: "desc" }, take: 1 },
-      },
-      orderBy: { creadoEn: "asc" },
+    const where: any = {
+      ...(estado
+        ? { estado }
+        : { estado: { in: ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO", "APROBADO", "RECHAZADO"] } }),
+      ...(regionId && { regionId }),
+      ...(search && {
+        OR: [
+          { dni: { contains: search, mode: "insensitive" } },
+          { nombres: { contains: search, mode: "insensitive" } },
+          { apellidoPaterno: { contains: search, mode: "insensitive" } },
+          { apellidoMaterno: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+    };
+
+    const [total, postulaciones] = await Promise.all([
+      prisma.postulacion.count({ where }),
+      prisma.postulacion.findMany({
+        where,
+        include: { region: true, carrera: true },
+        orderBy: { creadoEn: "desc" },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    res.json({
+      data: postulaciones,
+      total,
+      page,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     });
-    res.json(postulaciones);
   } catch (err) {
     next(err);
   }
@@ -123,6 +145,12 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
 router.post("/:id/aprobar", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
+    const carreraId = Number(req.body.carreraId);
+
+    if (!carreraId) {
+      return res.status(400).json({ error: "Debes seleccionar una especialidad antes de aprobar" });
+    }
+
     const postulacion = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
 
     if (!["PENDIENTE", "EN_REVISION", "SUBSANADO"].includes(postulacion.estado)) {
@@ -135,7 +163,7 @@ router.post("/:id/aprobar", async (req, res, next) => {
       return res.status(409).json({ error: "El postulante ya tiene una colegiatura activa" });
     }
 
-    const codigo = await generarCodigo(postulacion.regionId, postulacion.carreraId);
+    const codigo = await generarCodigo(postulacion.regionId, carreraId);
 
     const colegiado = await prisma.colegiado.create({
       data: {
@@ -147,7 +175,7 @@ router.post("/:id/aprobar", async (req, res, next) => {
         gmail: postulacion.gmail,
         postulacionId: id,
         regionId: postulacion.regionId,
-        carreraId: postulacion.carreraId,
+        carreraId,
         fotoUrl: postulacion.fotoUrl ?? undefined,
       },
     });

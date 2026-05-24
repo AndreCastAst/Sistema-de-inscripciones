@@ -11,6 +11,66 @@ import {
 const router = Router();
 const prisma = new PrismaClient();
 
+// ─── CONSULTA DE ESTADO DE CUENTA ────────────────────────────────────────
+
+// GET /api/v1/pagos/:query — estado de cuenta; acepta DNI (8 dígitos) o código CIP
+router.get("/:query", async (req, res, next) => {
+  try {
+    const q = req.params.query;
+    const where = /^\d{8}$/.test(q) ? { dni: q } : { codigo: q };
+
+    const colegiado = await prisma.colegiado.findUniqueOrThrow({
+      where,
+      include: { carrera: true },
+    });
+
+    // Traer todas las mensualidades (pagadas y pendientes)
+    const ahora = new Date();
+    const fechaAlta = new Date(colegiado.fechaAlta);
+    const primerMes = new Date(fechaAlta.getFullYear(), fechaAlta.getMonth() + 1, 1);
+    const mesActualInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+
+    const mensualidadesPagadas = await prisma.mensualidad.findMany({
+      where: { colegiadoId: colegiado.id },
+      select: { id: true, periodo: true, monto: true, pagadoEn: true },
+    });
+
+    const pagadasMap = new Map(mensualidadesPagadas.map((m) => [m.periodo, m]));
+
+    // Generar lista completa de meses desde el alta hasta hoy
+    const mensualidades: Array<{ id: number | null; periodo: string; monto: number; pagadoEn: string | null }> = [];
+    const cursor = new Date(primerMes);
+    let idFicticio = -1;
+
+    while (cursor <= mesActualInicio) {
+      const periodo = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+      if (pagadasMap.has(periodo)) {
+        const m = pagadasMap.get(periodo)!;
+        mensualidades.push({ id: m.id, periodo, monto: m.monto, pagadoEn: m.pagadoEn ? m.pagadoEn.toISOString() : null });
+      } else {
+        mensualidades.push({ id: idFicticio--, periodo, monto: 20, pagadoEn: null });
+      }
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    const totalDeuda = mensualidades.filter((m) => m.pagadoEn === null).reduce((sum, m) => sum + m.monto, 0);
+
+    res.json({
+      colegiado: {
+        nombres: colegiado.nombres,
+        apellidoPaterno: colegiado.apellidoPaterno,
+        apellidoMaterno: colegiado.apellidoMaterno,
+        codigo: colegiado.codigo,
+        carrera: { nombre: colegiado.carrera.nombre },
+      },
+      mensualidades,
+      totalDeuda,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── PAGO DE INSCRIPCIÓN ───────────────────────────────────────────────────
 
 // POST /api/v1/pagos/checkout — crear preferencia MercadoPago para inscripción (S/1,500)

@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { consultarDNI } from "../services/reniec";
+import { firmarUrl } from "../services/cloudinary";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,7 +13,12 @@ router.get("/dni/:dni", async (req, res, next) => {
   try {
     const datos = await consultarDNI(req.params.dni);
     res.json(datos);
-  } catch {
+  } catch (err: any) {
+    const status = err?.response?.status ?? err?.status ?? 404;
+    const apiMsg = err?.response?.data?.message ?? "";
+    if (status === 401 || apiMsg.toLowerCase().includes("token")) {
+      return next({ status: 503, message: "Servicio RENIEC no disponible temporalmente" });
+    }
     next({ status: 404, message: "DNI no encontrado en RENIEC" });
   }
 });
@@ -24,7 +30,7 @@ const postulacionSchema = z.object({
   apellidoMaterno: z.string().min(2),
   gmail: z.string().email("Correo electrónico inválido"),
   regionId: z.number().int().positive(),
-  carreraId: z.number().int().positive(),
+  carreraId: z.number().int().positive().optional(),
   fotoUrl: z.string().url().optional(),
   tituloUrl: z.string().url().optional(),
   voucherUrl: z.string().url().optional(),

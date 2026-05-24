@@ -37,9 +37,9 @@ model Postulacion {
   estado          EstadoPostulacion @default(PENDIENTE)
   esFisico        Boolean           @default(false)
   regionId        Int
-  carreraId       Int
+  carreraId       Int?
   region          Region            @relation(fields: [regionId], references: [id])
-  carrera         Carrera           @relation(fields: [carreraId], references: [id])
+  carrera         Carrera?          @relation(fields: [carreraId], references: [id])
   observaciones   Observacion[]
   colegiado       Colegiado?
   creadoEn        DateTime          @default(now())

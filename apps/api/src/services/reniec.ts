@@ -8,15 +8,28 @@ export interface DatosDNI {
 }
 
 export async function consultarDNI(dni: string): Promise<DatosDNI> {
-  const url = `${process.env.RENIEC_API_URL}?numero=${dni}`;
-  const { data } = await axios.get(url, {
-    headers: { Authorization: `Bearer ${process.env.RENIEC_API_TOKEN}` },
-  });
+  const params = new URLSearchParams();
+  params.append("dni", dni);
+
+  const { data } = await axios.post(
+    process.env.RENIEC_API_URL!,
+    params.toString(),
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.RENIEC_API_TOKEN}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    }
+  );
+
+  if (!data.success || !data.data?.nombres) {
+    throw Object.assign(new Error("DNI no encontrado"), { status: 404 });
+  }
 
   return {
-    dni: data.numeroDocumento,
-    nombres: data.nombres,
-    apellidoPaterno: data.apellidoPaterno,
-    apellidoMaterno: data.apellidoMaterno,
+    dni: data.data.numero,
+    nombres: data.data.nombres,
+    apellidoPaterno: data.data.apellido_paterno,
+    apellidoMaterno: data.data.apellido_materno,
   };
 }
