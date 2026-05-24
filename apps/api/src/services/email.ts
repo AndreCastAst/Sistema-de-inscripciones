@@ -1,11 +1,16 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,           // TLS en puerto 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
+  connectionTimeout: 10000,  // 10 segundos
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 const FROM = `"Colegio de Ingenieros del Perú" <${process.env.EMAIL_USER}>`;

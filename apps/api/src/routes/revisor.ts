@@ -2,12 +2,16 @@ import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { validate } from "../middlewares/validate";
+import { requireAuth } from "../middlewares/auth";
 import { generarCodigo } from "../services/correlativo";
 import { enviarObservacion, enviarAprobacion } from "../services/email";
 import { firmarUrl } from "../services/cloudinary";
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// Todas las rutas del revisor requieren autenticación JWT
+router.use(requireAuth);
 
 // GET /api/v1/revisor/bandeja?page=1&search=xxx&estado=PENDIENTE
 router.get("/bandeja", async (req, res, next) => {
