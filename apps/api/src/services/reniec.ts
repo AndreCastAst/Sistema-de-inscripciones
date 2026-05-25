@@ -22,7 +22,14 @@ export async function consultarDNI(dni: string): Promise<DatosDNI> {
     }
   );
 
-  if (!data.success || !data.data?.nombres) {
+  if (!data.success) {
+    const code: string = data.code ?? "";
+    if (code === "PLAN_LIMIT_REACHED" || code.includes("LIMIT") || code.includes("PLAN") || code.includes("UNAUTHORIZED")) {
+      throw Object.assign(new Error("Servicio RENIEC no disponible temporalmente"), { status: 503 });
+    }
+    throw Object.assign(new Error("DNI no encontrado"), { status: 404 });
+  }
+  if (!data.data?.nombres) {
     throw Object.assign(new Error("DNI no encontrado"), { status: 404 });
   }
 

@@ -42,7 +42,7 @@ router.get("/dni/:dni", async (req, res, next) => {
   } catch (err: any) {
     const status = err?.response?.status ?? err?.status ?? 404;
     const apiMsg = err?.response?.data?.message ?? "";
-    if (status === 401 || apiMsg.toLowerCase().includes("token")) {
+    if (status === 503 || status === 401 || apiMsg.toLowerCase().includes("token") || apiMsg.toLowerCase().includes("límite")) {
       return next({ status: 503, message: "Servicio RENIEC no disponible temporalmente" });
     }
     next({ status: 404, message: "DNI no encontrado en RENIEC" });
