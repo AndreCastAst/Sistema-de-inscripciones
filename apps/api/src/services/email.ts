@@ -1,26 +1,32 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,           // TLS en puerto 465
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.BREVO_SMTP_USER!,
+    pass: process.env.BREVO_SMTP_KEY!,
   },
-  connectionTimeout: 10000,  // 10 segundos
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
 });
 
-const FROM = `"Colegio de Ingenieros del Perú" <${process.env.EMAIL_USER}>`;
+const SENDER_EMAIL = process.env.BREVO_SMTP_USER!;
+const SENDER_NAME = "Colegio de Ingenieros del Perú";
+
+async function enviar(to: string, subject: string, html: string) {
+  await transporter.sendMail({
+    from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
+    to,
+    subject,
+    html,
+  });
+}
 
 export async function enviarObservacion(to: string, mensaje: string, postulacionId: number) {
-  await transporter.sendMail({
-    from: FROM,
+  await enviar(
     to,
-    subject: "Tu expediente tiene una observación – Colegio de Ingenieros",
-    html: `
+    "Tu expediente tiene una observación – Colegio de Ingenieros",
+    `
       <h2>Observación en tu solicitud de colegiatura</h2>
       <p>El revisor asignado ha registrado la siguiente observación en tu expediente:</p>
       <blockquote style="border-left:4px solid #ccc; padding:10px; margin:10px 0; color:#555;">
@@ -28,37 +34,35 @@ export async function enviarObservacion(to: string, mensaje: string, postulacion
       </blockquote>
       <p>Para subsanar, ingresa a la plataforma con tu número de solicitud: <strong>#${postulacionId}</strong></p>
       <p>No hay límite de intentos para corregir tu expediente.</p>
-    `,
-  });
+    `
+  );
 }
 
 export async function enviarAprobacion(to: string, codigo: string, nombres: string) {
-  await transporter.sendMail({
-    from: FROM,
+  await enviar(
     to,
-    subject: "¡Felicitaciones! Tu colegiatura fue aprobada",
-    html: `
+    "¡Felicitaciones! Tu colegiatura fue aprobada",
+    `
       <h2>¡Bienvenido al Colegio de Ingenieros del Perú!</h2>
       <p>Estimado/a ${nombres},</p>
       <p>Nos complace informarte que tu solicitud de colegiatura ha sido <strong>aprobada</strong>.</p>
       <p>Tu código de colegiado es: <strong style="font-size:24px;">${codigo}</strong></p>
       <p>Puedes acceder a tu carnet digital en cualquier momento ingresando tu código en la plataforma.</p>
       <p>Recuerda que a partir del próximo mes deberás abonar la cuota mensual de S/20 para mantener tu habilitación.</p>
-    `,
-  });
+    `
+  );
 }
 
 export async function enviarRecordatorioPago(to: string, nombres: string, mesesPendientes: number, deudaTotal: number) {
-  await transporter.sendMail({
-    from: FROM,
+  await enviar(
     to,
-    subject: "Tienes cuotas pendientes – Colegio de Ingenieros",
-    html: `
+    "Tienes cuotas pendientes – Colegio de Ingenieros",
+    `
       <h2>Aviso de morosidad</h2>
       <p>Estimado/a ${nombres},</p>
       <p>Tienes <strong>${mesesPendientes} cuota(s)</strong> pendiente(s) por un total de <strong>S/ ${deudaTotal.toFixed(2)}</strong>.</p>
       <p>Tu carnet muestra la marca "Inhabilitado/Moroso" mientras exista deuda.</p>
       <p>No hay penalidades: paga cuando puedas para rehabilitar tu condición al instante.</p>
-    `,
-  });
+    `
+  );
 }
