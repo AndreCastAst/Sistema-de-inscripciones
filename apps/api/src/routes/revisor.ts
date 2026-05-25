@@ -21,13 +21,12 @@ router.get("/bandeja", async (req, res, next) => {
     const skip = (page - 1) * limit;
     const search = (req.query.search as string | undefined)?.trim();
     const estado = (req.query.estado as string | undefined) ?? undefined;
-    const regionId = req.query.regionId ? Number(req.query.regionId) : undefined;
 
     const where: any = {
+      region: { nombre: "La Libertad" },
       ...(estado
         ? { estado }
         : { estado: { in: ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO", "APROBADO", "RECHAZADO"] } }),
-      ...(regionId && { regionId }),
       ...(search && {
         OR: [
           { dni: { contains: search, mode: "insensitive" } },
@@ -105,25 +104,27 @@ router.post("/:id/iniciar", async (req, res, next) => {
 const observarSchema = z.object({
   mensaje: z.string().min(10, "La observación debe tener al menos 10 caracteres"),
   revisorId: z.number().int().positive(),
+  camposObservados: z.array(z.enum(["foto", "titulo", "voucher"])).min(1, "Marca al menos un campo como observado"),
 });
 
 // POST /api/v1/revisor/:id/observar
 router.post("/:id/observar", validate(observarSchema), async (req, res, next) => {
   try {
     const id = Number(req.params.id);
+    const { mensaje, revisorId, camposObservados } = req.body;
     const postulacion = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
 
+    const { randomUUID } = await import("crypto");
+    const token = randomUUID();
+    const tokenExpiracion = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
     const obs = await prisma.observacion.create({
-      data: {
-        postulacionId: id,
-        mensaje: req.body.mensaje,
-        revisorId: req.body.revisorId,
-      },
+      data: { postulacionId: id, mensaje, revisorId, camposObservados },
     });
 
     await prisma.postulacion.update({
       where: { id },
-      data: { estado: "OBSERVADO" },
+      data: { estado: "OBSERVADO", subsanacionToken: token, tokenExpiracion },
     });
 
     await prisma.auditoria.create({
@@ -131,13 +132,13 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
         accion: "OBSERVACION",
         entidad: "Postulacion",
         entidadId: id,
-        actorId: req.body.revisorId,
-        detalle: req.body.mensaje.substring(0, 100),
+        actorId: revisorId,
+        detalle: `${mensaje.substring(0, 80)} | Campos: ${camposObservados.join(", ")}`,
       },
     });
 
-    // Notificar al postulante por correo
-    await enviarObservacion(postulacion.gmail, req.body.mensaje, id).catch(console.error);
+    const linkSubsanacion = `${process.env.FRONTEND_URL}/subsanacion?token=${token}`;
+    await enviarObservacion(postulacion.gmail, mensaje, id, linkSubsanacion).catch(console.error);
 
     res.json(obs);
   } catch (err) {

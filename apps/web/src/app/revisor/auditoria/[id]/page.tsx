@@ -82,26 +82,30 @@ export default function AuditoriaPage({ params }: Props) {
 
   async function handleObservar() {
     if (!observacion.trim() || observacion.trim().length < 10) {
-      setMensajeAccion({
-        tipo: "error",
-        texto: "La observación debe tener al menos 10 caracteres.",
-      });
+      setMensajeAccion({ tipo: "error", texto: "La observación debe tener al menos 10 caracteres." });
+      return;
+    }
+    const camposObservados = [
+      estadoFoto === "observado" && "foto",
+      estadoTitulo === "observado" && "titulo",
+      estadoVoucher === "observado" && "voucher",
+    ].filter(Boolean) as string[];
+
+    if (camposObservados.length === 0) {
+      setMensajeAccion({ tipo: "error", texto: "Debes marcar al menos un documento como observado (⚠ Obs.)." });
       return;
     }
     setProcesando(true);
     setMensajeAccion(null);
     try {
-      await observarPostulacion(id, observacion, 1);
+      await observarPostulacion(id, observacion, 1, camposObservados);
       setMensajeAccion({
         tipo: "exito",
-        texto: "Observación enviada. El postulante recibirá una notificación por correo.",
+        texto: "Observación enviada. El postulante recibirá un enlace por correo para subsanar.",
       });
       setPostulacion((p) => (p ? { ...p, estado: "OBSERVADO" } : p));
     } catch {
-      setMensajeAccion({
-        tipo: "error",
-        texto: "Error al enviar la observación. Intenta de nuevo.",
-      });
+      setMensajeAccion({ tipo: "error", texto: "Error al enviar la observación. Intenta de nuevo." });
     } finally {
       setProcesando(false);
     }
@@ -172,16 +176,16 @@ export default function AuditoriaPage({ params }: Props) {
             <span className="material-symbols-outlined text-xl">arrow_back</span>
           </Link>
           <div>
-            <h2 className="text-[20px] font-semibold text-on-surface">
+            <h2 className="font-headline-md text-headline-md text-on-surface">
               Auditoría de Expediente
             </h2>
-            <p className="text-[13px] text-on-surface-variant">
+            <p className="font-label-sm text-label-sm text-on-surface-variant">
               Exp. #{id} • {postulacion.region.nombre} •{" "}
               {new Date(postulacion.creadoEn).toLocaleDateString("es-PE")}
             </p>
           </div>
         </div>
-        <span className={`px-sm py-xs rounded-full text-[13px] font-semibold border ${badge.bg} ${badge.text} border-current/20`}>
+        <span className={`px-sm py-xs rounded-full font-label-sm text-label-sm border ${badge.bg} ${badge.text} border-current/20`}>
           {badge.label}
         </span>
       </header>
@@ -244,13 +248,13 @@ export default function AuditoriaPage({ params }: Props) {
 
             {/* Datos del postulante */}
             <div className="flex-1">
-              <h3 className="text-[15px] font-semibold text-on-surface uppercase mb-sm">
+              <h3 className="font-body-bold text-body-bold text-on-surface uppercase mb-sm">
                 {nombreCompleto}
               </h3>
               <div className="grid grid-cols-2 gap-sm">
                 <div>
-                  <p className="text-[13px] text-on-surface-variant">DNI</p>
-                  <p className="text-[15px] text-on-surface flex items-center gap-xs">
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">DNI</p>
+                  <p className="font-body-base text-body-base text-on-surface flex items-center gap-xs">
                     {postulacion.dni}
                     <span className="material-symbols-outlined text-status-aprobado-text text-base">
                       check_circle
@@ -258,18 +262,18 @@ export default function AuditoriaPage({ params }: Props) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[13px] text-on-surface-variant">Correo</p>
-                  <p className="text-[13px] text-on-surface truncate">{postulacion.gmail}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">Correo</p>
+                  <p className="font-label-sm text-label-sm text-on-surface truncate">{postulacion.gmail}</p>
                 </div>
                 <div>
-                  <p className="text-[13px] text-on-surface-variant">Carrera</p>
-                  <p className="text-[15px] text-on-surface">
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">Carrera</p>
+                  <p className="font-body-base text-body-base text-on-surface">
                     {postulacion.carrera ? `Ing. ${postulacion.carrera.nombre}` : "Por asignar"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[13px] text-on-surface-variant">Región</p>
-                  <p className="text-[15px] text-on-surface">{postulacion.region.nombre}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">Región</p>
+                  <p className="font-body-base text-body-base text-on-surface">{postulacion.region.nombre}</p>
                 </div>
               </div>
             </div>
@@ -298,7 +302,7 @@ export default function AuditoriaPage({ params }: Props) {
                 <div key={key} className="flex-1 flex flex-col">
                   {/* Toolbar del documento */}
                   <div className="h-10 bg-surface-container-highest border-b border-outline-variant flex items-center justify-between px-md shrink-0">
-                    <span className="text-[13px] text-on-surface-variant font-medium truncate">
+                    <span className="font-label-sm text-label-sm text-on-surface-variant truncate">
                       {label}
                     </span>
                     <div className="flex items-center gap-sm">
@@ -387,13 +391,13 @@ export default function AuditoriaPage({ params }: Props) {
           {/* Historial de observaciones */}
           {postulacion.observaciones.length > 0 && (
             <div className="border-t border-outline-variant p-md bg-surface shrink-0 max-h-[150px] overflow-y-auto">
-              <p className="text-[13px] font-semibold text-on-surface mb-sm">
+              <p className="font-label-sm text-label-sm font-semibold text-on-surface mb-sm">
                 Historial de observaciones:
               </p>
               {postulacion.observaciones.map((obs) => (
                 <div
                   key={obs.id}
-                  className="text-[13px] text-on-surface-variant border-l-2 border-status-observado-text pl-sm mb-sm"
+                  className="font-label-sm text-label-sm text-on-surface-variant border-l-2 border-status-observado-text pl-sm mb-sm"
                 >
                   {obs.mensaje}
                 </div>
@@ -405,20 +409,20 @@ export default function AuditoriaPage({ params }: Props) {
         {/* Panel derecho: Decisión */}
         <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-lg overflow-y-auto pb-lg">
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-md shadow-sm">
-            <h3 className="text-[20px] font-semibold text-on-surface mb-md">Panel de Decisión</h3>
+            <h3 className="font-headline-md text-headline-md text-on-surface mb-md">Panel de Decisión</h3>
 
             {/* Resumen de validación */}
             <div className="mb-md p-sm bg-surface-container-low rounded-lg border border-outline-variant">
-              <p className="text-[13px] font-medium text-on-surface mb-sm">Estado de documentos:</p>
+              <p className="font-label-sm text-label-sm font-medium text-on-surface mb-sm">Estado de documentos:</p>
               {[
                 { label: "Fotografía", estado: estadoFoto },
                 { label: "Título Profesional", estado: estadoTitulo },
                 { label: "Comprobante de Pago", estado: estadoVoucher },
               ].map(({ label, estado }) => (
                 <div key={label} className="flex items-center justify-between py-xs">
-                  <span className="text-[13px] text-on-surface-variant">{label}</span>
+                  <span className="font-label-sm text-label-sm text-on-surface-variant">{label}</span>
                   <span
-                    className={`text-[13px] font-medium ${iconoValidacion(estado)}`}
+                    className={`font-label-sm text-label-sm ${iconoValidacion(estado)}`}
                   >
                     {estado === "correcto" ? "✓ Correcto" : estado === "observado" ? "⚠ Observado" : "— Sin validar"}
                   </span>
@@ -428,7 +432,7 @@ export default function AuditoriaPage({ params }: Props) {
 
             {/* Asignar especialidad */}
             <div className="mb-md">
-              <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">
+              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">
                 Asignar Capítulo / Especialidad CIP{" "}
                 <span className="text-error">*</span>
               </label>
@@ -436,7 +440,7 @@ export default function AuditoriaPage({ params }: Props) {
                 value={carreraSeleccionada}
                 onChange={(e) => setCarreraSeleccionada(e.target.value)}
                 disabled={yaDecidido}
-                className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors disabled:opacity-60"
+                className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm font-body-base text-body-base text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors disabled:opacity-60"
               >
                 <option value="">Seleccione del catálogo CIP...</option>
                 {carreras.map((c) => (
@@ -449,11 +453,12 @@ export default function AuditoriaPage({ params }: Props) {
 
             {/* Observaciones */}
             <div className="mb-md p-sm rounded-lg bg-status-observado-bg/30 border border-status-observado-text/20">
-              <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">
+              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">
                 Observaciones{" "}
-                <span className="text-[13px] text-on-surface-variant/70">
-                  (obligatorio para observar)
+                <span className="text-on-surface-variant/70">
+                  (Obligatorio para observar)
                 </span>
+                <span className="text-error"> *</span>
               </label>
               <textarea
                 value={observacion}
@@ -461,7 +466,7 @@ export default function AuditoriaPage({ params }: Props) {
                 disabled={yaDecidido}
                 placeholder="Describa detalladamente las observaciones encontradas en los documentos..."
                 rows={4}
-                className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none placeholder:text-on-surface-variant/50 disabled:opacity-60"
+                className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm font-body-base text-body-base text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none placeholder:text-on-surface-variant/50 disabled:opacity-60"
               />
             </div>
 
@@ -487,16 +492,16 @@ export default function AuditoriaPage({ params }: Props) {
                 <button
                   onClick={handleObservar}
                   disabled={procesando}
-                  className="w-full bg-primary text-on-primary text-[15px] font-semibold h-12 rounded-lg flex items-center justify-center gap-sm hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-60"
+                  className="w-full bg-primary text-on-primary font-body-bold text-body-bold h-12 rounded-lg flex items-center justify-center gap-sm hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-60"
                 >
                   {procesando && <Spinner />}
                   <span className="material-symbols-outlined text-xl">send</span>
-                  Enviar Observación
+                  Enviar Notificación de Observación
                 </button>
                 <button
                   onClick={handleAprobar}
                   disabled={procesando || !carreraSeleccionada}
-                  className="w-full bg-status-aprobado-bg border border-status-aprobado-text/30 text-status-aprobado-text text-[15px] font-semibold h-12 rounded-lg flex items-center justify-center gap-sm hover:bg-status-aprobado-bg/80 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-status-aprobado-bg border border-status-aprobado-text/30 text-status-aprobado-text font-body-bold text-body-bold h-12 rounded-lg flex items-center justify-center gap-sm hover:bg-status-aprobado-bg/80 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {procesando && <Spinner />}
                   <span className="material-symbols-outlined text-xl">check_circle</span>

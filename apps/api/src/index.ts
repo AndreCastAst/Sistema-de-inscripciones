@@ -7,6 +7,7 @@ import { carnetRoutes } from "./routes/carnet";
 import { catalogoRoutes } from "./routes/catalogos";
 import { colegiadoRoutes } from "./routes/colegiado";
 import { authRoutes } from "./routes/auth";
+import { subsanacionRoutes } from "./routes/subsanacion";
 import { errorHandler } from "./middlewares/errorHandler";
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/v1/pagos", pagosRoutes);
 app.use("/api/v1/carnet", carnetRoutes);
 app.use("/api/v1/colegiado", colegiadoRoutes);
 app.use("/api/v1", catalogoRoutes);
+app.use("/api/v1/subsanacion", subsanacionRoutes);
 
 app.use(errorHandler);
 

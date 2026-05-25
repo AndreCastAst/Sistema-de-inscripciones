@@ -8,6 +8,7 @@ export interface PreferenciaResult {
   id: string;
   init_point: string;
   sandbox_init_point: string;
+  is_sandbox: boolean;
 }
 
 export async function crearPreferenciaInscripcion(postulacionId: number, email: string): Promise<PreferenciaResult> {
@@ -26,11 +27,10 @@ export async function crearPreferenciaInscripcion(postulacionId: number, email: 
       ],
       payer: { email },
       back_urls: {
-        success: `${process.env.FRONTEND_URL}/postulante/${postulacionId}?pago=exitoso`,
-        failure: `${process.env.FRONTEND_URL}/postulante/${postulacionId}?pago=fallido`,
-        pending: `${process.env.FRONTEND_URL}/postulante/${postulacionId}?pago=pendiente`,
+        success: `${process.env.FRONTEND_URL}/?pago=exitoso&id=${postulacionId}`,
+        failure: `${process.env.FRONTEND_URL}/?pago=fallido`,
+        pending: `${process.env.FRONTEND_URL}/?pago=pendiente&id=${postulacionId}`,
       },
-      auto_return: "approved",
       external_reference: `inscripcion-${postulacionId}`,
       notification_url: `${process.env.BACKEND_URL}/api/v1/pagos/notificacion`,
     },
@@ -40,6 +40,7 @@ export async function crearPreferenciaInscripcion(postulacionId: number, email: 
     id: result.id!,
     init_point: result.init_point!,
     sandbox_init_point: result.sandbox_init_point!,
+    is_sandbox: (process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "").startsWith("TEST"),
   };
 }
 
@@ -63,7 +64,6 @@ export async function crearPreferenciaMensualidad(colegiadoId: number, periodo: 
         failure: `${process.env.FRONTEND_URL}/colegiado?pago=fallido&periodo=${periodo}`,
         pending: `${process.env.FRONTEND_URL}/colegiado?pago=pendiente&periodo=${periodo}`,
       },
-      auto_return: "approved",
       external_reference: `mensualidad-${colegiadoId}-${periodo}`,
       notification_url: `${process.env.BACKEND_URL}/api/v1/pagos/notificacion`,
     },
@@ -73,6 +73,7 @@ export async function crearPreferenciaMensualidad(colegiadoId: number, periodo: 
     id: result.id!,
     init_point: result.init_point!,
     sandbox_init_point: result.sandbox_init_point!,
+    is_sandbox: (process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "").startsWith("TEST"),
   };
 }
 

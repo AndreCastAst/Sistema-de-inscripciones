@@ -22,10 +22,10 @@ export function AdminSidebar() {
     return (
       <Link
         href={href}
-        className={`mx-sm px-md py-sm rounded-lg text-[15px] flex items-center gap-md transition-all active:scale-[0.98] ${
+        className={`mx-sm px-md py-sm rounded-lg flex items-center gap-md transition-all active:scale-[0.98] ${
           activo
-            ? "bg-primary-container text-on-primary-container font-semibold"
-            : "text-on-surface-variant hover:bg-secondary-container font-medium"
+            ? "bg-primary-container text-on-primary-container font-body-bold text-body-bold"
+            : "text-on-surface-variant hover:bg-secondary-container font-body-medium text-body-medium"
         }`}
       >
         <span
@@ -48,8 +48,8 @@ export function AdminSidebar() {
             <span className="text-on-primary font-bold text-sm">RA</span>
           </div>
           <div>
-            <h2 className="text-[15px] font-semibold text-primary">{nombre}</h2>
-            <p className="text-[13px] text-on-surface-variant">Panel Administrativo</p>
+            <h2 className="font-body-bold text-body-bold text-primary">{nombre}</h2>
+            <p className="font-label-sm text-label-sm text-on-surface-variant">Panel Administrativo</p>
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function AdminSidebar() {
       <div className="mt-auto px-sm flex flex-col gap-unit pt-md border-t border-outline-variant">
         <button
           onClick={handleLogout}
-          className="mx-sm px-md py-sm rounded-lg text-[15px] font-medium flex items-center gap-md transition-all hover:bg-secondary-container w-full text-left"
+          className="mx-sm px-md py-sm rounded-lg font-body-medium text-body-medium flex items-center gap-md transition-all hover:bg-secondary-container w-full text-left"
         >
           <span className="material-symbols-outlined text-error">logout</span>
           <span className="text-error">Cerrar Sesión</span>

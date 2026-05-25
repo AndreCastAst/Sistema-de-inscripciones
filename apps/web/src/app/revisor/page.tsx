@@ -97,14 +97,14 @@ export default function RevisorPage() {
       {/* Barra superior */}
       <header className="bg-surface-container-lowest border-b border-outline-variant px-lg py-md flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-md">
-          <h1 className="text-[20px] font-semibold text-on-surface">Bandeja de Expedientes</h1>
+          <h1 className="font-headline-md text-headline-md text-on-surface">Bandeja de Expedientes</h1>
           <div className="h-6 w-px bg-outline-variant" />
           <div className="flex items-center gap-sm bg-surface-container-low px-md py-1 rounded-lg border border-outline-variant">
             <span className="material-symbols-outlined text-on-surface-variant text-[18px]">
               location_on
             </span>
-            <span className="text-[13px] text-on-surface-variant">Sede:</span>
-            <span className="text-[13px] font-semibold text-on-surface">Lima</span>
+            <span className="font-label-sm text-label-sm text-on-surface-variant">Sede:</span>
+            <span className="font-label-sm text-label-sm font-semibold text-on-surface">La Libertad</span>
           </div>
         </div>
         <form onSubmit={handleSearch}>
@@ -116,7 +116,7 @@ export default function RevisorPage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar por DNI o Nombre..."
-              className="pl-10 pr-4 py-2 w-64 bg-surface-container-low border border-outline-variant rounded-lg text-[15px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+              className="pl-10 pr-4 py-2 w-64 bg-surface-container-low border border-outline-variant rounded-lg font-body-base text-body-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
             />
           </div>
         </form>
@@ -135,22 +135,22 @@ export default function RevisorPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-surface-container-low border-b border-outline-variant">
-                    <th className="px-md py-sm text-[13px] text-on-surface-variant font-semibold uppercase tracking-wider">
+                    <th className="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">
                       DNI
                     </th>
-                    <th className="px-md py-sm text-[13px] text-on-surface-variant font-semibold uppercase tracking-wider">
+                    <th className="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">
                       Nombre del Postulante
                     </th>
-                    <th className="px-md py-sm text-[13px] text-on-surface-variant font-semibold uppercase tracking-wider hidden md:table-cell">
+                    <th className="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider hidden md:table-cell">
                       Carrera / Región
                     </th>
-                    <th className="px-md py-sm text-[13px] text-on-surface-variant font-semibold uppercase tracking-wider hidden lg:table-cell">
+                    <th className="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider hidden lg:table-cell">
                       Fecha de Ingreso
                     </th>
-                    <th className="px-md py-sm text-[13px] text-on-surface-variant font-semibold uppercase tracking-wider">
+                    <th className="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">
                       Estado
                     </th>
-                    <th className="px-md py-sm text-[13px] text-on-surface-variant font-semibold uppercase tracking-wider text-right">
+                    <th className="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider text-right">
                       Acciones
                     </th>
                   </tr>
@@ -166,26 +166,26 @@ export default function RevisorPage() {
                         key={exp.id}
                         className="hover:bg-surface-container transition-colors"
                       >
-                        <td className="px-md py-md text-[15px] font-medium text-on-surface">
+                        <td className="px-md py-md font-body-medium text-body-medium text-on-surface">
                           {exp.dni}
                         </td>
-                        <td className="px-md py-md text-[15px] text-on-surface">
+                        <td className="px-md py-md font-body-base text-body-base text-on-surface">
                           {exp.nombres} {exp.apellidoPaterno} {exp.apellidoMaterno}
                         </td>
                         <td className="px-md py-md hidden md:table-cell">
-                          <div className="text-[13px] text-on-surface-variant">
+                          <div className="font-label-sm text-label-sm text-on-surface-variant">
                             {exp.carrera ? `Ing. ${exp.carrera.nombre}` : "Sin asignar"}
                           </div>
-                          <div className="text-[12px] text-on-surface-variant/70">
+                          <div className="font-label-sm text-label-sm text-on-surface-variant/70">
                             {exp.region.nombre}
                           </div>
                         </td>
-                        <td className="px-md py-md text-[15px] text-on-surface-variant hidden lg:table-cell">
+                        <td className="px-md py-md font-body-base text-body-base text-on-surface-variant hidden lg:table-cell">
                           {formatFecha(exp.creadoEn)}
                         </td>
                         <td className="px-md py-md">
                           <span
-                            className={`inline-flex items-center px-sm py-unit rounded-md text-[13px] font-semibold border ${badge.bg} ${badge.text} ${badge.border}`}
+                            className={`inline-flex items-center px-sm py-unit rounded-md font-label-sm text-label-sm font-semibold border ${badge.bg} ${badge.text} ${badge.border}`}
                           >
                             {badge.label}
                           </span>
@@ -194,7 +194,7 @@ export default function RevisorPage() {
                           {puedeRevisar ? (
                             <Link
                               href={`/revisor/auditoria/${exp.id}`}
-                              className="text-primary hover:text-primary-container text-[15px] font-medium flex items-center justify-end gap-unit transition-colors"
+                              className="text-primary hover:text-primary-container font-body-medium text-body-medium flex items-center justify-end gap-unit transition-colors"
                             >
                               Revisar
                               <span className="material-symbols-outlined text-[18px]">
@@ -204,7 +204,7 @@ export default function RevisorPage() {
                           ) : exp.estado === "APROBADO" ? (
                             <Link
                               href={`/revisor/auditoria/${exp.id}`}
-                              className="text-secondary hover:text-on-surface text-[15px] font-medium flex items-center justify-end gap-unit transition-colors"
+                              className="text-secondary hover:text-on-surface font-body-medium text-body-medium flex items-center justify-end gap-unit transition-colors"
                             >
                               Ver Detalle
                               <span className="material-symbols-outlined text-[18px]">
@@ -212,7 +212,7 @@ export default function RevisorPage() {
                               </span>
                             </Link>
                           ) : (
-                            <span className="text-on-surface-variant text-[15px] px-md">—</span>
+                            <span className="text-on-surface-variant font-body-medium text-body-medium px-md">—</span>
                           )}
                         </td>
                       </tr>
@@ -223,7 +223,7 @@ export default function RevisorPage() {
                     <tr>
                       <td
                         colSpan={6}
-                        className="px-md py-xl text-center text-on-surface-variant text-[15px]"
+                        className="px-md py-xl text-center text-on-surface-variant font-body-base text-body-base"
                       >
                         No se encontraron expedientes{search ? ` para "${search}"` : ""}.
                       </td>
@@ -234,7 +234,7 @@ export default function RevisorPage() {
 
               {/* Paginación */}
               <div className="bg-surface-container-low border-t border-outline-variant px-md py-sm flex items-center justify-between">
-                <span className="text-[13px] text-on-surface-variant">
+                <span className="font-label-sm text-label-sm text-on-surface-variant">
                   Mostrando {expedientes.length} de {total} expedientes
                 </span>
                 <div className="flex items-center gap-xs">
@@ -250,7 +250,7 @@ export default function RevisorPage() {
                     <button
                       key={n}
                       onClick={() => setPage(n)}
-                      className={`px-sm py-unit text-[13px] rounded transition-colors ${
+                      className={`px-sm py-unit font-label-sm text-label-sm rounded transition-colors ${
                         n === page
                           ? "bg-primary text-on-primary font-semibold"
                           : "text-on-surface-variant hover:bg-surface-container"

@@ -11,7 +11,7 @@ import {
 const router = Router();
 const prisma = new PrismaClient();
 
-// ─── CONSULTA DE ESTADO DE CUENTA ────────────────────────────────────────
+// ─── CONSULTA DE ESTADO DE CUENTA ────────────────────────────────────────────
 
 // GET /api/v1/pagos/:query — estado de cuenta; acepta DNI (8 dígitos) o código CIP
 router.get("/:query", async (req, res, next) => {
@@ -61,6 +61,7 @@ router.get("/:query", async (req, res, next) => {
         apellidoPaterno: colegiado.apellidoPaterno,
         apellidoMaterno: colegiado.apellidoMaterno,
         codigo: colegiado.codigo,
+        gmail: colegiado.gmail,
         carrera: { nombre: colegiado.carrera.nombre },
       },
       mensualidades,
@@ -71,7 +72,7 @@ router.get("/:query", async (req, res, next) => {
   }
 });
 
-// ─── PAGO DE INSCRIPCIÓN ───────────────────────────────────────────────────
+// ─── PAGO DE INSCRIPCIÓN ───────────────────────────────────────────────────────
 
 // POST /api/v1/pagos/checkout — crear preferencia MercadoPago para inscripción (S/1,500)
 router.post("/checkout", async (req, res, next) => {
@@ -117,7 +118,7 @@ router.post("/voucher", validate(voucherSchema), async (req, res, next) => {
   }
 });
 
-// ─── PAGO DE MENSUALIDADES ────────────────────────────────────────────────
+// ─── PAGO DE MENSUALIDADES ────────────────────────────────────────────────────
 
 // POST /api/v1/pagos/mensualidad/checkout — crear preferencia para mensualidad (S/20)
 router.post("/mensualidad/checkout", async (req, res, next) => {
@@ -172,7 +173,7 @@ router.post("/mensualidad/voucher", validate(mensualidadVoucherSchema), async (r
   }
 });
 
-// ─── WEBHOOK MERCADOPAGO ──────────────────────────────────────────────────
+// ─── WEBHOOK MERCADOPAGO ──────────────────────────────────────────────────────
 
 // POST /api/v1/pagos/notificacion — webhook de MercadoPago
 router.post("/notificacion", async (req, res, next) => {
@@ -222,6 +223,68 @@ router.post("/notificacion", async (req, res, next) => {
     }
 
     res.sendStatus(200);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── SIMULACIÓN DE PASARELA DE PAGOS ─────────────────────────────────────────
+
+const simulacionSchema = z.object({
+  banco: z.string(),
+  numeroOperacion: z.string(),
+  tipo: z.enum(["inscripcion", "mensualidades"]),
+  postulacionId: z.number().int().positive().optional(),
+  codigo: z.string().optional(),
+  periodos: z.array(z.string()).optional(),
+});
+
+// POST /api/v1/pagos/simulacion — registra un pago simulado (demo / curso)
+router.post("/simulacion", validate(simulacionSchema), async (req, res, next) => {
+  try {
+    const { banco, numeroOperacion, tipo, postulacionId, codigo, periodos } = req.body;
+    const refPago = `SIM-${banco}-${numeroOperacion}`;
+
+    if (tipo === "inscripcion" && postulacionId) {
+      await prisma.postulacion.update({
+        where: { id: postulacionId },
+        data: { voucherUrl: refPago },
+      });
+      await prisma.auditoria.create({
+        data: {
+          accion: "PAGO_INSCRIPCION_SIMULADO",
+          entidad: "Postulacion",
+          entidadId: postulacionId,
+          detalle: `Banco: ${banco} | Op: ${numeroOperacion}`,
+        },
+      });
+    } else if (tipo === "mensualidades" && codigo && periodos?.length) {
+      const colegiado = await prisma.colegiado.findUniqueOrThrow({ where: { codigo } });
+      for (const periodo of periodos) {
+        await prisma.mensualidad.upsert({
+          where: { colegiadoId_periodo: { colegiadoId: colegiado.id, periodo } },
+          update: { pagadoEn: new Date(), metodoPago: "VOUCHER", voucherUrl: refPago },
+          create: {
+            colegiadoId: colegiado.id,
+            periodo,
+            monto: 20,
+            pagadoEn: new Date(),
+            metodoPago: "VOUCHER",
+            voucherUrl: refPago,
+          },
+        });
+      }
+      await prisma.auditoria.create({
+        data: {
+          accion: "PAGO_MENSUALIDADES_SIMULADO",
+          entidad: "Colegiado",
+          entidadId: colegiado.id,
+          detalle: `Banco: ${banco} | Op: ${numeroOperacion} | Periodos: ${periodos.join(", ")}`,
+        },
+      });
+    }
+
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

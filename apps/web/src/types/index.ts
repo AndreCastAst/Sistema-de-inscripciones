@@ -61,6 +61,7 @@ export interface Observacion {
   postulacionId: number;
   mensaje: string;
   revisorId: number;
+  camposObservados: string[];
   creadoEn: string;
 }
 
@@ -92,6 +93,8 @@ export interface PostulacionDetalle extends Postulacion {
   region: Region;
   carrera: Carrera | null;
   observaciones: Observacion[];
+  subsanacionToken?: string | null;
+  tokenExpiracion?: string | null;
 }
 
 export interface PostulacionBandeja extends Postulacion {
@@ -139,6 +142,7 @@ export interface FormInscripcionCompleto extends FormDatosPersonales {
   fotoUrl?: string;
   tituloUrl?: string;
   voucherUrl?: string;
+  esFisico?: boolean;
 }
 
 /** Formulario de subsanación: el postulante corrige documentos observados */

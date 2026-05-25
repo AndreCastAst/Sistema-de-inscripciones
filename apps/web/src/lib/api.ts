@@ -60,6 +60,7 @@ export interface EstadoCuenta {
     apellidoPaterno: string;
     apellidoMaterno: string;
     codigo: string;
+    gmail: string;
     carrera: { nombre: string };
   };
   mensualidades: Array<{
@@ -75,6 +76,40 @@ export async function obtenerEstadoCuenta(query: string): Promise<EstadoCuenta> 
   const { data } = await api.get(`/pagos/${query}`);
   return data;
 }
+
+// ─── MercadoPago checkout ─────────────────────────────────────────────────────
+
+export interface CheckoutMPResult {
+  id: string;
+  init_point: string;
+  sandbox_init_point: string;
+  is_sandbox: boolean;
+}
+
+export async function crearCheckoutMP(postulacionId: number): Promise<CheckoutMPResult> {
+  const { data } = await api.post("/pagos/checkout", { postulacionId });
+  return data;
+}
+
+// ─── Simulación de pasarela de pagos ─────────────────────────────────────────
+
+export interface RegistrarSimulacionParams {
+  banco: string;
+  numeroOperacion: string;
+  tipo: "inscripcion" | "mensualidades";
+  postulacionId?: number;
+  codigo?: string;
+  periodos?: string[];
+}
+
+export async function registrarSimulacion(
+  body: RegistrarSimulacionParams
+): Promise<{ success: boolean }> {
+  const { data } = await api.post("/pagos/simulacion", body);
+  return data;
+}
+
+// ─── Panel revisor ────────────────────────────────────────────────────────────
 
 export interface PostulacionBandejaItem {
   id: number;
@@ -112,7 +147,36 @@ export async function aprobarPostulacion(
 export async function observarPostulacion(
   id: number,
   mensaje: string,
-  revisorId: number
+  revisorId: number,
+  camposObservados: string[]
 ): Promise<void> {
-  await api.post(`/revisor/${id}/observar`, { mensaje, revisorId });
+  await api.post(`/revisor/${id}/observar`, { mensaje, revisorId, camposObservados });
+}
+
+// ─── Subsanación por token ────────────────────────────────────────────────────
+
+export async function obtenerSubsanacionPorToken(token: string): Promise<PostulacionDetalle> {
+  const { data } = await api.get(`/subsanacion/${token}`);
+  return data;
+}
+
+export async function procesarSubsanacion(
+  token: string,
+  body: { fotoUrl?: string; tituloUrl?: string; voucherUrl?: string }
+): Promise<void> {
+  await api.patch(`/subsanacion/${token}`, body);
+}
+
+export async function buscarPostulacionPorDNI(
+  dni: string
+): Promise<PostulacionDetalle> {
+  const { data } = await api.get(`/postulantes/buscar/${dni}`);
+  return data;
+}
+
+export async function subsanarPostulacion(
+  id: number,
+  body: { fotoUrl?: string; tituloUrl?: string; voucherUrl?: string }
+): Promise<void> {
+  await api.patch(`/postulantes/${id}`, body);
 }

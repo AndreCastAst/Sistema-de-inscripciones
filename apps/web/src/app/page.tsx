@@ -6,9 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
-import { consultarDNI, crearPostulacion, getRegiones } from "@/lib/api";
+import { consultarDNI, crearPostulacion, crearCheckoutMP, getRegiones } from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
-import type { Region } from "@/types";
 
 const schema = z.object({
   dni: z.string().length(8, "El DNI debe tener exactamente 8 dígitos").regex(/^\d+$/, "Solo números"),
@@ -62,7 +61,7 @@ function ZonaCarga({ archivo, onClick, icono, titulo, descripcion, mensajeCarga 
         {archivo.estado === "subiendo" ? (
           <>
             <Spinner />
-            <span className="text-[15px] font-medium text-on-surface-variant mt-sm">{mensajeCarga}</span>
+            <span className="font-body-medium text-body-medium text-on-surface-variant mt-sm">{mensajeCarga}</span>
           </>
         ) : archivo.estado === "listo" && archivo.preview ? (
           <>
@@ -71,8 +70,8 @@ function ZonaCarga({ archivo, onClick, icono, titulo, descripcion, mensajeCarga 
               alt="Vista previa"
               className="w-20 h-28 object-cover rounded border border-outline-variant mb-sm"
             />
-            <span className="text-[13px] text-status-aprobado-text font-medium">✓ Subido correctamente</span>
-            <span className="text-[13px] text-on-surface-variant mt-xs">Toca para cambiar</span>
+            <span className="font-label-sm text-label-sm text-status-aprobado-text">✓ Subido correctamente</span>
+            <span className="font-label-sm text-label-sm text-on-surface-variant mt-xs">Toca para cambiar</span>
           </>
         ) : archivo.estado === "listo" ? (
           <>
@@ -82,21 +81,21 @@ function ZonaCarga({ archivo, onClick, icono, titulo, descripcion, mensajeCarga 
             >
               task
             </span>
-            <span className="text-[13px] text-status-aprobado-text font-medium">✓ Subido correctamente</span>
-            <span className="text-[13px] text-on-surface-variant mt-xs">Toca para cambiar</span>
+            <span className="font-label-sm text-label-sm text-status-aprobado-text">✓ Subido correctamente</span>
+            <span className="font-label-sm text-label-sm text-on-surface-variant mt-xs">Toca para cambiar</span>
           </>
         ) : (
           <>
             <span className="material-symbols-outlined text-outline text-3xl mb-sm group-hover:text-primary transition-colors">
               {icono}
             </span>
-            <span className="text-[15px] font-medium text-on-surface mb-xs">{titulo}</span>
-            <span className="text-[13px] text-on-surface-variant text-center max-w-[200px]">{descripcion}</span>
+            <span className="font-body-medium text-body-medium text-on-surface mb-xs">{titulo}</span>
+            <span className="font-label-sm text-label-sm text-on-surface-variant text-center max-w-[200px]">{descripcion}</span>
           </>
         )}
       </button>
       {archivo.error && (
-        <p className="text-error text-[13px] mt-xs">{archivo.error}</p>
+        <p className="text-error font-label-sm text-label-sm mt-xs">{archivo.error}</p>
       )}
     </div>
   );
@@ -105,7 +104,6 @@ function ZonaCarga({ archivo, onClick, icono, titulo, descripcion, mensajeCarga 
 // ── Página principal ─────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [regiones, setRegiones] = useState<Region[]>([]);
   const [dniVerificado, setDniVerificado] = useState(false);
   const [buscandoDNI, setBuscandoDNI] = useState(false);
   const [errorDNI, setErrorDNI] = useState<string | null>(null);
@@ -117,6 +115,8 @@ export default function HomePage() {
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [expedienteId, setExpedienteId] = useState<number | null>(null);
+  const [correoEnviado, setCorreoEnviado] = useState<string | null>(null);
+  const [voucherPagoRef, setVoucherPagoRef] = useState<string | null>(null);
 
   const fotoRef = useRef<HTMLInputElement>(null);
   const tituloRef = useRef<HTMLInputElement>(null);
@@ -128,22 +128,48 @@ export default function HomePage() {
     getValues,
     setValue,
     reset,
+    trigger,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  const [watchNombres, watchApPat, watchApMat] = watch(["nombres", "apellidoPaterno", "apellidoMaterno"]);
+  const nombreCompleto = [watchNombres, watchApPat, watchApMat].filter(Boolean).join(" ");
+
+  // Detectar retorno desde MercadoPago
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pago = params.get("pago");
+    const id = params.get("id");
+    const paymentId = params.get("payment_id");
+
+    if ((pago === "exitoso" || pago === "pendiente") && id) {
+      setExpedienteId(Number(id));
+      setVoucherPagoRef(paymentId ? `mp:${paymentId}` : "mp:procesando");
+      const gmail = sessionStorage.getItem("mp_gmail");
+      if (gmail) {
+        setCorreoEnviado(gmail);
+        sessionStorage.removeItem("mp_gmail");
+      }
+      window.history.replaceState({}, "", "/");
+    }
+    if (pago === "fallido") {
+      setErrorEnvio("El pago fue rechazado o cancelado. Puedes intentarlo de nuevo.");
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
+
+  // Obtener el ID de La Libertad al montar (región institucional fija)
   useEffect(() => {
     getRegiones()
-      .then(setRegiones)
+      .then((regiones) => {
+        const laLibertad = regiones.find((r) => r.nombre === "La Libertad");
+        if (laLibertad) setValue("regionId", laLibertad.id, { shouldValidate: true });
+      })
       .catch(() => {
-        setRegiones([
-          { id: 1, nombre: "Lima" },
-          { id: 2, nombre: "Arequipa" },
-          { id: 3, nombre: "Cusco" },
-          { id: 4, nombre: "La Libertad" },
-          { id: 5, nombre: "Piura" },
-        ]);
+        setValue("regionId", 5, { shouldValidate: true });
       });
-  }, []);
+  }, [setValue]);
 
   async function validarDNI() {
     const dni = getValues("dni");
@@ -183,6 +209,46 @@ export default function HomePage() {
     setModoManual(true);
     setErrorDNI(null);
     setDniVerificado(true);
+  }
+
+  async function iniciarPagoMP() {
+    const valid = await trigger();
+    if (!valid) return;
+    if (foto.estado !== "listo" || titulo.estado !== "listo") {
+      setErrorEnvio("Debes subir la foto y el título profesional antes de proceder al pago.");
+      return;
+    }
+    setEnviando(true);
+    setErrorEnvio(null);
+    try {
+      const formData = getValues();
+      let postulacionId: number;
+
+      try {
+        const postulacion = await crearPostulacion({
+          ...formData,
+          regionId: Number(formData.regionId),
+          fotoUrl: foto.url!,
+          tituloUrl: titulo.url!,
+          voucherUrl: undefined,
+        });
+        postulacionId = postulacion.id;
+      } catch (err: any) {
+        if (err?.response?.status === 409 && err?.response?.data?.postulacionId) {
+          postulacionId = err.response.data.postulacionId;
+        } else {
+          throw err;
+        }
+      }
+
+      const checkout = await crearCheckoutMP(postulacionId);
+      sessionStorage.setItem("mp_gmail", formData.gmail);
+      window.location.href = checkout.is_sandbox ? checkout.sandbox_init_point : checkout.init_point;
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? "Error desconocido";
+      setErrorEnvio(`Error al iniciar el pago: ${msg}`);
+      setEnviando(false);
+    }
   }
 
   async function manejarArchivo(
@@ -233,11 +299,11 @@ export default function HomePage() {
     dniVerificado &&
     foto.estado === "listo" &&
     titulo.estado === "listo" &&
-    (metodoPago === "integrated" || voucher.estado === "listo");
+    metodoPago === "voucher" &&
+    voucher.estado === "listo";
 
   async function onSubmit(data: FormData) {
-    if (!foto.url || !titulo.url) return;
-    if (metodoPago === "voucher" && !voucher.url) return;
+    if (!foto.url || !titulo.url || !voucher.url) return;
 
     setEnviando(true);
     setErrorEnvio(null);
@@ -247,9 +313,11 @@ export default function HomePage() {
         regionId: Number(data.regionId),
         fotoUrl: foto.url,
         tituloUrl: titulo.url,
-        voucherUrl: voucher.url ?? undefined,
+        voucherUrl: voucher.url,
       });
       setExpedienteId(result.id);
+      setCorreoEnviado(data.gmail);
+      setVoucherPagoRef(voucher.url);
     } catch {
       setErrorEnvio("Ocurrió un error al enviar la solicitud. Intenta de nuevo.");
     } finally {
@@ -268,39 +336,141 @@ export default function HomePage() {
     setMetodoPago("integrated");
     setErrorEnvio(null);
     setExpedienteId(null);
+    setCorreoEnviado(null);
+    setVoucherPagoRef(null);
   }
 
   // ── Estado de éxito ───────────────────────────────────────────────────────
 
   if (expedienteId !== null) {
+    const esPasarela = voucherPagoRef?.startsWith("SIM-") || voucherPagoRef?.startsWith("mp:");
+    const fechaActual = new Date().toLocaleDateString("es-PE", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+    const horaActual = new Date().toLocaleTimeString("es-PE", {
+      hour: "2-digit", minute: "2-digit",
+    });
+
     return (
       <>
         <NavBar activeTab="portal" />
         <main className="flex-grow py-xl px-md md:px-lg">
-          <div className="max-w-container-max-form mx-auto bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
-            <div className="p-xl text-center space-y-md">
-              <div className="w-16 h-16 bg-status-aprobado-bg rounded-full flex items-center justify-center mx-auto">
-                <span
-                  className="material-symbols-outlined text-status-aprobado-text"
-                  style={{ fontSize: "36px", fontVariationSettings: "'FILL' 1" }}
-                >
-                  check_circle
-                </span>
+          <div className="max-w-container-max-form mx-auto space-y-md">
+
+            {/* Banner de éxito */}
+            <div className="bg-status-aprobado-bg border border-status-aprobado-text/30 rounded-xl p-lg flex items-center gap-md">
+              <span
+                className="material-symbols-outlined text-status-aprobado-text shrink-0"
+                style={{ fontSize: "48px", fontVariationSettings: "'FILL' 1" }}
+              >
+                check_circle
+              </span>
+              <div>
+                <h2 className="font-headline-md text-headline-md text-on-surface">¡Solicitud enviada con éxito!</h2>
+                <p className="font-body-base text-body-base text-on-surface-variant mt-xs">
+                  Tu expediente fue recibido y se encuentra en espera de revisión.
+                </p>
               </div>
-              <h2 className="text-[20px] font-semibold text-on-surface">
-                ¡Solicitud enviada con éxito!
-              </h2>
-              <p className="text-[15px] text-on-surface-variant max-w-sm mx-auto">
-                Tu expediente ha sido recibido. Un revisor de tu región lo evaluará y recibirás
-                una notificación por correo electrónico.
-              </p>
+            </div>
+
+            {/* Comprobante — solo para pago por pasarela integrada */}
+            {esPasarela ? (
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-surface-container-low px-lg py-md border-b border-outline-variant text-center">
+                  <p className="font-body-bold text-body-bold text-on-surface tracking-wider uppercase">
+                    Comprobante de Solicitud de Inscripción
+                  </p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant mt-xs">
+                    Colegio de Ingenieros del Perú · RUC: 20100149286
+                  </p>
+                </div>
+                <div className="p-lg space-y-sm">
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="font-body-base text-body-base text-on-surface-variant">Fecha y hora</span>
+                    <span className="font-body-medium text-body-medium text-on-surface">{fechaActual} {horaActual}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="font-body-base text-body-base text-on-surface-variant">Concepto</span>
+                    <span className="font-body-medium text-body-medium text-on-surface">Derecho de Inscripción – CIP</span>
+                  </div>
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="font-body-base text-body-base text-on-surface-variant">Monto pagado</span>
+                    <span className="font-body-bold text-body-bold text-primary">S/ 1,500.00</span>
+                  </div>
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="font-body-base text-body-base text-on-surface-variant">Método de pago</span>
+                    <span className="font-body-medium text-body-medium text-on-surface">
+                      {voucherPagoRef?.startsWith("mp:") ? "MercadoPago" : "Pasarela integrada"}
+                    </span>
+                  </div>
+                  {voucherPagoRef && voucherPagoRef !== "mp:procesando" && (
+                    <div className="flex justify-between border-b border-outline-variant pb-sm">
+                      <span className="font-body-base text-body-base text-on-surface-variant">Referencia de pago</span>
+                      <span className="font-mono font-label-sm text-label-sm text-on-surface">{voucherPagoRef}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pb-sm">
+                    <span className="font-body-base text-body-base text-on-surface-variant">Estado</span>
+                    <span className="font-body-medium text-body-medium text-status-pendiente-text">⏳ Pendiente de revisión</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Voucher externo — el pago será verificado manualmente */
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex items-start gap-md">
+                <span className="material-symbols-outlined text-status-pendiente-text shrink-0 mt-xs" style={{ fontSize: "32px" }}>
+                  hourglass_top
+                </span>
+                <div>
+                  <p className="font-body-bold text-body-bold text-on-surface">Comprobante en verificación</p>
+                  <p className="font-body-base text-body-base text-on-surface-variant mt-xs">
+                    Tu voucher bancario fue recibido. El revisor lo validará en las próximas{" "}
+                    <strong className="text-on-surface">24–48 horas hábiles</strong> y te notificará por correo.
+                  </p>
+                  <div className="mt-md flex items-center gap-sm font-label-sm text-label-sm text-on-surface-variant">
+                    <span className="material-symbols-outlined text-base">info</span>
+                    Fecha de envío: {fechaActual} {horaActual}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Aviso de correo enviado */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-md flex items-start gap-sm">
+              <span className="material-symbols-outlined text-primary text-2xl shrink-0 mt-xs">
+                mark_email_read
+              </span>
+              <div>
+                <p className="font-body-bold text-body-bold text-on-surface">
+                  Correo de confirmación enviado
+                </p>
+                <p className="font-label-sm text-label-sm text-on-surface-variant mt-xs">
+                  Se envió un comprobante con los detalles de tu solicitud a{" "}
+                  <strong className="text-primary">{correoEnviado}</strong>.
+                  Revisa también tu carpeta de spam si no lo encuentras en unos minutos.
+                </p>
+              </div>
+            </div>
+
+            {/* Qué sigue */}
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+              <p className="font-body-bold text-body-bold text-on-surface mb-sm">¿Qué sigue?</p>
+              <ol className="space-y-xs font-body-base text-body-base text-on-surface-variant list-decimal list-inside">
+                <li>Un revisor de tu región evaluará tu expediente.</li>
+                <li>Si hay observaciones, recibirás un correo indicando qué corregir.</li>
+                <li>Al ser aprobado recibirás tu código de colegiado por correo.</li>
+              </ol>
+            </div>
+
+            <div className="flex justify-center pt-sm">
               <a
                 href="/"
-                className="inline-block bg-primary text-on-primary text-[15px] font-semibold px-lg py-2.5 rounded-lg hover:brightness-110 transition-all shadow-sm"
+                className="bg-primary text-on-primary font-body-bold text-body-bold px-xl py-sm rounded-lg hover:brightness-110 transition-all shadow-sm"
               >
-                Salir
+                Nueva solicitud
               </a>
             </div>
+
           </div>
         </main>
       </>
@@ -313,13 +483,13 @@ export default function HomePage() {
     <>
       <NavBar activeTab="portal" />
       <main className="flex-grow py-xl px-md md:px-lg">
-        <div className="max-w-container-max-form mx-auto bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+        <div className="max-w-container-max-form mx-auto bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
           {/* Cabecera del formulario */}
-          <div className="bg-surface-container-low px-lg py-md border-b border-outline-variant text-center">
-            <h2 className="text-[20px] font-semibold text-on-surface mb-xs">
+          <div className="bg-surface-container-low px-lg py-md border-b border-outline-variant/30 text-center">
+            <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">
               Formulario de Inscripción Virtual
             </h2>
-            <p className="text-[15px] text-on-surface-variant">
+            <p className="font-body-base text-body-base text-on-surface-variant">
               Complete los datos solicitados con veracidad para iniciar su proceso de colegiatura.
             </p>
           </div>
@@ -334,114 +504,124 @@ export default function HomePage() {
                 >
                   badge
                 </span>
-                <h3 className="text-[15px] font-semibold text-on-surface">
+                <h3 className="font-body-bold text-body-bold text-on-surface">
                   Identidad del Postulante
                 </h3>
               </div>
 
-              <div className="flex flex-col gap-xs mb-md">
-                <label className="text-[13px] font-medium text-on-surface-variant">
-                  Documento de Identidad (DNI)
-                </label>
-                <div className="flex gap-sm">
-                  <input
-                    {...register("dni")}
-                    maxLength={8}
-                    placeholder="Ingrese 8 dígitos"
-                    className="flex-grow text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-on-surface-variant/50"
-                  />
-                  <button
-                    type="button"
-                    onClick={validarDNI}
-                    disabled={buscandoDNI}
-                    className={`flex items-center gap-xs px-md rounded border text-[15px] font-semibold transition-colors disabled:opacity-60 ${
-                      dniVerificado
-                        ? "bg-status-aprobado-bg text-status-aprobado-text border-status-aprobado-text/30"
-                        : "bg-surface-container text-primary border-outline-variant hover:bg-secondary-container"
-                    }`}
-                  >
-                    {buscandoDNI && <Spinner />}
-                    {dniVerificado ? "Verificado" : "Validar"}
-                  </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                {/* DNI */}
+                <div className="flex flex-col gap-xs">
+                  <label className="font-label-sm text-label-sm text-on-surface-variant">
+                    Documento de Identidad (DNI)
+                  </label>
+                  <div className="flex gap-sm">
+                    <input
+                      {...register("dni")}
+                      maxLength={8}
+                      placeholder="Ingrese 8 dígitos"
+                      className="flex-grow font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-on-surface-variant/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={validarDNI}
+                      disabled={buscandoDNI}
+                      className={`flex items-center gap-xs px-md rounded border font-body-bold transition-colors disabled:opacity-60 ${
+                        dniVerificado
+                          ? "bg-status-aprobado-bg text-status-aprobado-text border-status-aprobado-text/30"
+                          : "bg-surface-container text-primary border-outline-variant hover:bg-secondary-container"
+                      }`}
+                    >
+                      {buscandoDNI && <Spinner />}
+                      {dniVerificado ? "Verificado" : "Validar"}
+                    </button>
+                  </div>
+                  {errors.dni && (
+                    <p className="text-error font-label-sm text-label-sm">{errors.dni.message}</p>
+                  )}
+                  {errorDNI && (
+                    <div className="flex flex-col gap-xs">
+                      <p className="text-error font-label-sm text-label-sm">{errorDNI}</p>
+                      {modoManual && (
+                        <button
+                          type="button"
+                          onClick={activarModoManual}
+                          className="self-start font-label-sm text-label-sm text-primary underline underline-offset-2 hover:text-primary/80"
+                        >
+                          Ingresar datos manualmente →
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {errors.dni && (
-                  <p className="text-error text-[13px]">{errors.dni.message}</p>
-                )}
-                {errorDNI && (
-                  <div className="flex flex-col gap-xs">
-                    <p className="text-error text-[13px]">{errorDNI}</p>
-                    {modoManual && (
-                      <button
-                        type="button"
-                        onClick={activarModoManual}
-                        className="self-start text-[13px] font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-                      >
-                        Ingresar datos manualmente →
-                      </button>
-                    )}
+
+                {/* Nombres: combinado (RENIEC) o campos manuales */}
+                {dniVerificado && modoManual ? (
+                  /* Manual: 3 campos editables en col-span-2 */
+                  <div className="flex flex-col gap-xs md:col-span-2">
+                    <div className="mb-xs p-sm rounded-lg bg-status-pendiente-bg border border-status-pendiente-text/30 flex items-center gap-sm font-label-sm text-label-sm text-status-pendiente-text">
+                      <span className="material-symbols-outlined text-base">edit_note</span>
+                      Ingresando datos manualmente — verifica que sean correctos
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
+                      <div className="flex flex-col gap-xs">
+                        <label className="font-label-sm text-label-sm text-on-surface-variant">Nombres</label>
+                        <input
+                          {...register("nombres")}
+                          placeholder="Nombres"
+                          className="font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        />
+                        {errors.nombres && (
+                          <p className="text-error font-label-sm text-label-sm">{errors.nombres.message}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-xs">
+                        <label className="font-label-sm text-label-sm text-on-surface-variant">
+                          Apellido Paterno
+                        </label>
+                        <input
+                          {...register("apellidoPaterno")}
+                          placeholder="Apellido paterno"
+                          className="font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        />
+                        {errors.apellidoPaterno && (
+                          <p className="text-error font-label-sm text-label-sm">{errors.apellidoPaterno.message}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-xs">
+                        <label className="font-label-sm text-label-sm text-on-surface-variant">
+                          Apellido Materno
+                        </label>
+                        <input
+                          {...register("apellidoMaterno")}
+                          placeholder="Apellido materno"
+                          className="font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        />
+                        {errors.apellidoMaterno && (
+                          <p className="text-error font-label-sm text-label-sm">{errors.apellidoMaterno.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* RENIEC o pendiente: campo combinado readonly/disabled */
+                  <div className="flex flex-col gap-xs md:col-span-2">
+                    <label className="font-label-sm text-label-sm text-on-surface-variant">
+                      Nombres y Apellidos (RENIEC)
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      disabled={!dniVerificado}
+                      value={dniVerificado ? nombreCompleto : ""}
+                      placeholder="Esperando validación RENIEC"
+                      className="font-body-base text-body-base bg-surface-container-high border border-outline-variant/50 rounded px-md py-sm text-on-secondary-fixed-variant cursor-not-allowed placeholder:text-on-surface-variant/50"
+                    />
+                    <input type="hidden" {...register("nombres")} />
+                    <input type="hidden" {...register("apellidoPaterno")} />
+                    <input type="hidden" {...register("apellidoMaterno")} />
                   </div>
                 )}
-              </div>
-
-              {dniVerificado && modoManual && (
-                <div className="mb-md p-sm rounded-lg bg-status-pendiente-bg border border-status-pendiente-text/30 flex items-center gap-sm text-[13px] text-status-pendiente-text">
-                  <span className="material-symbols-outlined text-base">edit_note</span>
-                  Ingresando datos manualmente — verifica que sean correctos
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[13px] font-medium text-on-surface-variant">Nombres</label>
-                  <input
-                    {...register("nombres")}
-                    readOnly={dniVerificado && !modoManual}
-                    placeholder="Nombres"
-                    className={`text-[15px] border rounded px-md py-sm focus:outline-none transition-all ${
-                      dniVerificado && !modoManual
-                        ? "bg-surface-container-high border-outline-variant/50 text-on-secondary-fixed-variant cursor-not-allowed"
-                        : "bg-surface-container-lowest border-outline-variant focus:ring-2 focus:ring-primary focus:border-transparent"
-                    }`}
-                  />
-                  {errors.nombres && (
-                    <p className="text-error text-[13px]">{errors.nombres.message}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[13px] font-medium text-on-surface-variant">
-                    Apellido Paterno
-                  </label>
-                  <input
-                    {...register("apellidoPaterno")}
-                    readOnly={dniVerificado && !modoManual}
-                    placeholder="Apellido paterno"
-                    className={`text-[15px] border rounded px-md py-sm focus:outline-none transition-all ${
-                      dniVerificado && !modoManual
-                        ? "bg-surface-container-high border-outline-variant/50 text-on-secondary-fixed-variant cursor-not-allowed"
-                        : "bg-surface-container-lowest border-outline-variant focus:ring-2 focus:ring-primary focus:border-transparent"
-                    }`}
-                  />
-                  {errors.apellidoPaterno && (
-                    <p className="text-error text-[13px]">{errors.apellidoPaterno.message}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-xs">
-                  <label className="text-[13px] font-medium text-on-surface-variant">
-                    Apellido Materno
-                  </label>
-                  <input
-                    {...register("apellidoMaterno")}
-                    readOnly={dniVerificado && !modoManual}
-                    placeholder="Apellido materno"
-                    className={`text-[15px] border rounded px-md py-sm focus:outline-none transition-all ${
-                      dniVerificado && !modoManual
-                        ? "bg-surface-container-high border-outline-variant/50 text-on-secondary-fixed-variant cursor-not-allowed"
-                        : "bg-surface-container-lowest border-outline-variant focus:ring-2 focus:ring-primary focus:border-transparent"
-                    }`}
-                  />
-                  {errors.apellidoMaterno && (
-                    <p className="text-error text-[13px]">{errors.apellidoMaterno.message}</p>
-                  )}
-                </div>
               </div>
             </section>
 
@@ -454,59 +634,28 @@ export default function HomePage() {
                 >
                   mail
                 </span>
-                <h3 className="text-[15px] font-semibold text-on-surface">
+                <h3 className="font-body-bold text-body-bold text-on-surface">
                   Información de Contacto
                 </h3>
               </div>
               <div className="flex flex-col gap-xs">
-                <label className="text-[13px] font-medium text-on-surface-variant">
+                <label className="font-label-sm text-label-sm text-on-surface-variant">
                   Correo Electrónico Principal
                 </label>
                 <input
                   {...register("gmail")}
                   type="email"
                   placeholder="ejemplo@correo.com"
-                  className="text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  className="font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
                 {errors.gmail && (
-                  <p className="text-error text-[13px]">{errors.gmail.message}</p>
+                  <p className="text-error font-label-sm text-label-sm">{errors.gmail.message}</p>
                 )}
-                <p className="text-[13px] text-on-surface-variant/70 mt-xs">
+                <p className="font-label-sm text-label-sm text-on-surface-variant/70 mt-1">
                   Este correo será utilizado para todas las notificaciones oficiales.
                 </p>
               </div>
-            </section>
-
-            {/* ── Sección: Datos Académicos ──────────────────────────────── */}
-            <section>
-              <div className="flex items-center gap-sm mb-md border-b border-surface-variant pb-sm">
-                <span
-                  className="material-symbols-outlined text-primary"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  school
-                </span>
-                <h3 className="text-[15px] font-semibold text-on-surface">Datos Académicos</h3>
-              </div>
-              <div className="flex flex-col gap-xs">
-                <label className="text-[13px] font-medium text-on-surface-variant">
-                  Región / Consejo Departamental
-                </label>
-                <select
-                  {...register("regionId")}
-                  className="text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                >
-                  <option value="">Selecciona una región</option>
-                  {regiones.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nombre}
-                    </option>
-                  ))}
-                </select>
-                {errors.regionId && (
-                  <p className="text-error text-[13px]">{errors.regionId.message}</p>
-                )}
-              </div>
+              <input type="hidden" {...register("regionId")} />
             </section>
 
             {/* ── Sección: Documentos ───────────────────────────────────── */}
@@ -518,7 +667,7 @@ export default function HomePage() {
                 >
                   upload_file
                 </span>
-                <h3 className="text-[15px] font-semibold text-on-surface">Carga de Requisitos</h3>
+                <h3 className="font-body-bold text-body-bold text-on-surface">Carga de Requisitos</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
                 <input
@@ -569,7 +718,7 @@ export default function HomePage() {
                 >
                   payments
                 </span>
-                <h3 className="text-[15px] font-semibold text-on-surface">Modalidad de Pago</h3>
+                <h3 className="font-body-bold text-body-bold text-on-surface">Modalidad de Pago</h3>
               </div>
               <div className="space-y-sm">
                 <label className="flex items-center gap-sm p-sm rounded-lg border cursor-pointer transition-colors bg-surface-bright has-[:checked]:bg-primary-fixed/20 has-[:checked]:border-primary border-outline-variant hover:bg-surface-container-low">
@@ -581,11 +730,11 @@ export default function HomePage() {
                     onChange={() => setMetodoPago("integrated")}
                     className="text-primary focus:ring-primary h-4 w-4 border-outline-variant"
                   />
-                  <span className="text-[15px] font-medium text-on-surface flex-grow">
-                    Pasarela Integrada (Tarjeta Crédito/Débito)
+                  <span className="font-body-medium text-body-medium text-on-surface flex-grow">
+                    Pasarela Integrada — Yape, Plin, BCP, BBVA, Interbank y más
                   </span>
                   <span className="material-symbols-outlined text-on-surface-variant text-lg">
-                    credit_card
+                    account_balance
                   </span>
                 </label>
                 <label className="flex items-center gap-sm p-sm rounded-lg border cursor-pointer transition-colors bg-surface-bright has-[:checked]:bg-primary-fixed/20 has-[:checked]:border-primary border-outline-variant hover:bg-surface-container-low">
@@ -597,7 +746,7 @@ export default function HomePage() {
                     onChange={() => setMetodoPago("voucher")}
                     className="text-primary focus:ring-primary h-4 w-4 border-outline-variant"
                   />
-                  <span className="text-[15px] font-medium text-on-surface flex-grow">
+                  <span className="font-body-medium text-body-medium text-on-surface flex-grow">
                     Voucher Externo (Depósito/Transferencia)
                   </span>
                   <span className="material-symbols-outlined text-on-surface-variant text-lg">
@@ -605,6 +754,29 @@ export default function HomePage() {
                   </span>
                 </label>
               </div>
+
+              {/* Pasarela integrada: botón que redirige a MercadoPago */}
+              {metodoPago === "integrated" && (
+                <div className="mt-md space-y-sm">
+                  <button
+                    type="button"
+                    onClick={iniciarPagoMP}
+                    disabled={enviando}
+                    className="w-full flex items-center justify-center gap-sm p-md bg-primary text-on-primary rounded-xl hover:brightness-110 active:scale-95 transition-all font-body-bold text-body-bold shadow-sm disabled:opacity-60"
+                  >
+                    {enviando ? (
+                      <Spinner />
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">account_balance</span>
+                    )}
+                    {enviando ? "Redirigiendo a MercadoPago..." : "Proceder al pago — S/ 1,500.00"}
+                  </button>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant text-center">
+                    Serás redirigido a MercadoPago para completar el pago de forma segura.
+                    Acepta tarjetas, Yape y más.
+                  </p>
+                </div>
+              )}
 
               {/* Zona de carga del voucher */}
               {metodoPago === "voucher" && (
@@ -632,26 +804,28 @@ export default function HomePage() {
 
             {/* Error de envío */}
             {errorEnvio && (
-              <div className="bg-error-container border border-error/20 text-error rounded-lg px-md py-sm flex items-start gap-sm text-[15px]">
+              <div className="bg-error-container border border-error/20 text-error rounded-lg px-md py-sm flex items-start gap-sm font-body-base text-body-base">
                 <span className="material-symbols-outlined text-lg mt-0.5">error</span>
                 {errorEnvio}
               </div>
             )}
 
-            {/* Botón de envío */}
-            <div className="pt-md border-t border-surface-variant flex justify-end">
-              <button
-                type="submit"
-                disabled={!puedeEnviar || enviando}
-                className="bg-primary text-on-primary text-[15px] font-semibold py-3 px-xl rounded-lg disabled:opacity-50 hover:brightness-110 active:scale-95 transition-all shadow-sm flex items-center gap-sm"
-              >
-                {enviando && <Spinner />}
-                {enviando ? "Enviando..." : "Enviar Solicitud"}
-                {!enviando && (
-                  <span className="material-symbols-outlined text-lg">send</span>
-                )}
-              </button>
-            </div>
+            {/* Botón de envío — solo para método voucher */}
+            {metodoPago === "voucher" && (
+              <div className="pt-md border-t border-surface-variant flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!puedeEnviar || enviando}
+                  className="bg-primary text-on-primary font-body-bold text-body-bold py-3 px-xl rounded-lg disabled:opacity-50 hover:brightness-110 active:scale-95 transition-all shadow-sm flex items-center gap-sm"
+                >
+                  {enviando && <Spinner />}
+                  {enviando ? "Enviando..." : "Enviar Solicitud"}
+                  {!enviando && (
+                    <span className="material-symbols-outlined text-lg">send</span>
+                  )}
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </main>

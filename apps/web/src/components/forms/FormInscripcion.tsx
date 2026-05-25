@@ -107,6 +107,7 @@ export function FormInscripcion() {
 
         {paso === "documentos" && (
           <PasoDocumentos
+            datosPersonales={datosPersonales ?? undefined}
             onSiguiente={(urls) => {
               setUrlsDocumentos(urls);
               setPaso("revision");

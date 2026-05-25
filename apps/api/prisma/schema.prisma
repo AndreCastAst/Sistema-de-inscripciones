@@ -25,35 +25,38 @@ model Carrera {
 }
 
 model Postulacion {
-  id              Int               @id @default(autoincrement())
-  dni             String
-  nombres         String
-  apellidoPaterno String
-  apellidoMaterno String
-  gmail           String
-  fotoUrl         String?
-  tituloUrl       String?
-  voucherUrl      String?
-  estado          EstadoPostulacion @default(PENDIENTE)
-  esFisico        Boolean           @default(false)
-  regionId        Int
-  carreraId       Int?
-  region          Region            @relation(fields: [regionId], references: [id])
-  carrera         Carrera?          @relation(fields: [carreraId], references: [id])
-  observaciones   Observacion[]
-  colegiado       Colegiado?
-  creadoEn        DateTime          @default(now())
-  actualizadoEn   DateTime          @updatedAt
+  id                 Int               @id @default(autoincrement())
+  dni                String
+  nombres            String
+  apellidoPaterno    String
+  apellidoMaterno    String
+  gmail              String
+  fotoUrl            String?
+  tituloUrl          String?
+  voucherUrl         String?
+  estado             EstadoPostulacion @default(PENDIENTE)
+  esFisico           Boolean           @default(false)
+  regionId           Int
+  carreraId          Int?
+  subsanacionToken   String?           @unique
+  tokenExpiracion    DateTime?
+  region             Region            @relation(fields: [regionId], references: [id])
+  carrera            Carrera?          @relation(fields: [carreraId], references: [id])
+  observaciones      Observacion[]
+  colegiado          Colegiado?
+  creadoEn           DateTime          @default(now())
+  actualizadoEn      DateTime          @updatedAt
 }
 
 model Observacion {
-  id            Int         @id @default(autoincrement())
-  postulacionId Int
-  mensaje       String
-  revisorId     Int
-  postulacion   Postulacion @relation(fields: [postulacionId], references: [id])
-  revisor       Revisor     @relation(fields: [revisorId], references: [id])
-  creadoEn      DateTime    @default(now())
+  id               Int         @id @default(autoincrement())
+  postulacionId    Int
+  mensaje          String
+  revisorId        Int
+  camposObservados String[]    @default([])
+  postulacion      Postulacion @relation(fields: [postulacionId], references: [id])
+  revisor          Revisor     @relation(fields: [revisorId], references: [id])
+  creadoEn         DateTime    @default(now())
 }
 
 model Colegiado {

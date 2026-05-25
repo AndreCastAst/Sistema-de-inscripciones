@@ -74,14 +74,20 @@ export function PasoRevision({ datos, urls, regiones, carreras, onExito, onAtras
         ].map(({ label, url }) => (
           <div key={label} className="flex items-center justify-between text-sm py-2 border-b border-gray-100">
             <span className="text-gray-700">{label}</span>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              Ver archivo
-            </a>
+            {url.startsWith("SIM-") ? (
+              <span className="text-green-600 font-medium flex items-center gap-1">
+                ✓ Pago simulado S/1,500
+              </span>
+            ) : (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Ver archivo
+              </a>
+            )}
           </div>
         ))}
       </div>
