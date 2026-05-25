@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mercadopago": "^2.0.15",
     "nodemailer": "^6.9.16",
+    "resend": "^6.12.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {

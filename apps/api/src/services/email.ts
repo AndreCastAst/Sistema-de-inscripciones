@@ -1,25 +1,27 @@
-import nodemailer from "nodemailer";
+import axios from "axios";
 
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_SMTP_USER!,
-    pass: process.env.BREVO_SMTP_KEY!,
-  },
-});
-
-const SENDER_EMAIL = process.env.BREVO_SMTP_USER!;
+const BREVO_API_KEY = process.env.BREVO_API_KEY!;
+const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+const SENDER_EMAIL = "renzoprincipeguadiamosprincipe@gmail.com";
 const SENDER_NAME = "Colegio de Ingenieros del Perú";
 
 async function enviar(to: string, subject: string, html: string) {
-  await transporter.sendMail({
-    from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
-    to,
-    subject,
-    html,
-  });
+  const res = await axios.post(
+    BREVO_URL,
+    {
+      sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    },
+    {
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return res.data;
 }
 
 export async function enviarObservacion(to: string, mensaje: string, postulacionId: number) {

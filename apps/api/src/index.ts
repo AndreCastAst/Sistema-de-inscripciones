@@ -12,7 +12,12 @@ import { errorHandler } from "./middlewares/errorHandler";
 const app = express();
 const PORT = process.env.PORT ?? 4000;
 
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? "*" }));
+const corsOrigin = process.env.CORS_ORIGIN ?? "*";
+const corsOptions =
+  corsOrigin === "*"
+    ? { origin: "*" as const }
+    : { origin: corsOrigin.split(",").map((o) => o.trim()) };
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
