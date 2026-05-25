@@ -1,20 +1,8 @@
-import nodemailer from "nodemailer";
+import axios from "axios";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
-
-transporter.verify((error) => {
-  if (error) {
-    console.error("[Email] ❌ Error SMTP:", error.message);
-  } else {
-    console.log("[Email] ✅ Gmail SMTP listo —", process.env.EMAIL_USER);
-  }
-});
+const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL ?? process.env.EMAIL_USER ?? "renzoprincipeguadiamosprincipe@gmail.com";
+const SENDER_NAME = "Colegio de Ingenieros del Perú";
 
 async function enviar(
   to: string,
@@ -22,14 +10,31 @@ async function enviar(
   html: string,
   attachments?: { filename: string; content: Buffer; contentType: string }[]
 ) {
-  const info = await transporter.sendMail({
-    from: `"Colegio de Ingenieros del Perú" <${process.env.EMAIL_USER}>`,
-    to,
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) throw new Error("BREVO_API_KEY no configurada");
+
+  const payload: Record<string, unknown> = {
+    sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+    to: [{ email: to }],
     subject,
-    html,
-    attachments,
+    htmlContent: html,
+  };
+
+  if (attachments?.length) {
+    payload.attachment = attachments.map((a) => ({
+      name: a.filename,
+      content: a.content.toString("base64"),
+    }));
+  }
+
+  const { data } = await axios.post(BREVO_URL, payload, {
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+    },
   });
-  console.log(`[Email] ✉  Enviado a ${to} — id: ${info.messageId}`);
+
+  console.log(`[Email] ✉  Enviado a ${to} — messageId: ${data.messageId}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,10 +109,14 @@ export async function enviarConfirmacionInscripcion(
             <td style="padding:10px 12px;border:1px solid #e0e0e0;">${dni}</td>
           </tr>
           <tr style="background:#f9f9f9;">
+            <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;">N° Expediente</td>
+            <td style="padding:10px 12px;border:1px solid #e0e0e0;font-family:monospace;">#${postulacionId}</td>
+          </tr>
+          <tr>
             <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;">Concepto</td>
             <td style="padding:10px 12px;border:1px solid #e0e0e0;">Derecho de Inscripción – Colegiatura CIP</td>
           </tr>
-          <tr>
+          <tr style="background:#f9f9f9;">
             <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;">Monto</td>
             <td style="padding:10px 12px;border:1px solid #e0e0e0;font-size:18px;font-weight:700;color:#003DA5;">S/ 1,500.00</td>
           </tr>
@@ -133,7 +142,7 @@ export async function enviarConfirmacionInscripcion(
         </div>
 
         <p style="font-size:11px;color:#aaa;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">
-          Colegio de Ingenieros del Perú · Sistema de Inscripciones · Curso Agile Development
+          Colegio de Ingenieros del Perú · Sistema de Inscripciones
         </p>
       </div>
     </div>
@@ -191,12 +200,20 @@ export async function enviarAprobacion(to: string, codigo: string, nombres: stri
     to,
     "¡Felicitaciones! Tu colegiatura fue aprobada – CIP",
     `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-        <h2 style="color:#003DA5;">¡Bienvenido al Colegio de Ingenieros del Perú!</h2>
-        <p>Estimado/a ${nombres},</p>
-        <p>Tu solicitud fue <strong>aprobada</strong>. Tu código de colegiado es:</p>
-        <p style="font-size:28px;font-weight:700;color:#003DA5;text-align:center;">${codigo}</p>
-        <p>Recuerda abonar la cuota mensual de S/20 para mantener tu habilitación.</p>
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd;border-radius:10px;overflow:hidden;">
+        <div style="background:#003DA5;color:white;padding:24px;text-align:center;">
+          <h2 style="margin:0;font-size:20px;">COLEGIO DE INGENIEROS DEL PERÚ</h2>
+        </div>
+        <div style="padding:24px;">
+          <h3 style="color:#2e7d32;">¡Bienvenido al Colegio de Ingenieros del Perú!</h3>
+          <p style="color:#333;">Estimado/a <strong>${nombres}</strong>,</p>
+          <p style="color:#555;">Tu solicitud de inscripción fue <strong>aprobada</strong>. Tu código de colegiado es:</p>
+          <p style="font-size:32px;font-weight:700;color:#003DA5;text-align:center;letter-spacing:2px;padding:16px;background:#e8eef8;border-radius:8px;">${codigo}</p>
+          <p style="color:#555;font-size:13px;">Recuerda abonar la cuota mensual de S/20 para mantener tu habilitación.</p>
+          <p style="font-size:11px;color:#aaa;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">
+            Colegio de Ingenieros del Perú · Sistema de Inscripciones
+          </p>
+        </div>
       </div>
     `
   );
@@ -205,13 +222,22 @@ export async function enviarAprobacion(to: string, codigo: string, nombres: stri
 export async function enviarRecordatorioPago(to: string, nombres: string, mesesPendientes: number, deudaTotal: number) {
   await enviar(
     to,
-    "Tienes cuotas pendientes – Colegio de Ingenieros",
+    "Tienes cuotas pendientes – Colegio de Ingenieros del Perú",
     `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-        <h2 style="color:#003DA5;">Aviso de cuotas pendientes</h2>
-        <p>Estimado/a ${nombres},</p>
-        <p>Tienes <strong>${mesesPendientes} cuota(s)</strong> por un total de <strong>S/ ${deudaTotal.toFixed(2)}</strong>.</p>
-        <p>Paga cuando puedas para rehabilitar tu condición al instante.</p>
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd;border-radius:10px;overflow:hidden;">
+        <div style="background:#003DA5;color:white;padding:24px;text-align:center;">
+          <h2 style="margin:0;font-size:20px;">COLEGIO DE INGENIEROS DEL PERÚ</h2>
+        </div>
+        <div style="padding:24px;">
+          <h3 style="color:#f57f17;">Aviso de cuotas pendientes</h3>
+          <p style="color:#333;">Estimado/a <strong>${nombres}</strong>,</p>
+          <p style="color:#555;">Tienes <strong>${mesesPendientes} cuota(s) pendiente(s)</strong> por un total de:</p>
+          <p style="font-size:28px;font-weight:700;color:#003DA5;text-align:center;">S/ ${deudaTotal.toFixed(2)}</p>
+          <p style="color:#555;font-size:13px;">Regulariza tu situación para mantener tu condición de colegiado habilitado.</p>
+          <p style="font-size:11px;color:#aaa;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">
+            Colegio de Ingenieros del Perú · Sistema de Inscripciones
+          </p>
+        </div>
       </div>
     `
   );
