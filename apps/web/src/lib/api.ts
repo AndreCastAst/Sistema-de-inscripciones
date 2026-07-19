@@ -60,21 +60,64 @@ export interface EstadoCuenta {
     apellidoPaterno: string;
     apellidoMaterno: string;
     codigo: string;
+    gmail: string;
     carrera: { nombre: string };
   };
   mensualidades: Array<{
     id: number;
     periodo: string;
     monto: number;
+    vencido: boolean;
     pagadoEn: string | null;
   }>;
   totalDeuda: number;
+  totalMora: number;
+  moraPorcentaje: number;
 }
 
 export async function obtenerEstadoCuenta(query: string): Promise<EstadoCuenta> {
   const { data } = await api.get(`/pagos/${query}`);
   return data;
 }
+
+// Separa la deuda pendiente en meses vencidos y mes actual, con los dos
+// totales posibles: solo vencidos (con mora) o todo lo pendiente.
+export interface DesgloseDeuda {
+  vencidas: EstadoCuenta["mensualidades"];
+  actual: EstadoCuenta["mensualidades"];
+  baseVencida: number;
+  totalSoloVencida: number;
+  totalConActual: number;
+}
+
+export function desglosarDeuda(cuenta: EstadoCuenta): DesgloseDeuda {
+  const pendientes = cuenta.mensualidades.filter((m) => m.pagadoEn === null);
+  const vencidas = pendientes.filter((m) => m.vencido);
+  const actual = pendientes.filter((m) => !m.vencido);
+  const baseVencida = Math.round(vencidas.reduce((s, m) => s + m.monto, 0) * 100) / 100;
+  const totalSoloVencida = Math.round((baseVencida + cuenta.totalMora) * 100) / 100;
+  return { vencidas, actual, baseVencida, totalSoloVencida, totalConActual: cuenta.totalDeuda };
+}
+
+// ─── Simulación de pasarela de pagos ─────────────────────────────────────────
+
+export interface RegistrarSimulacionParams {
+  banco: string;
+  numeroOperacion: string;
+  tipo: "inscripcion" | "mensualidades";
+  postulacionId?: number;
+  codigo?: string;
+  periodos?: string[];
+}
+
+export async function registrarSimulacion(
+  body: RegistrarSimulacionParams
+): Promise<{ success: boolean }> {
+  const { data } = await api.post("/pagos/simulacion", body);
+  return data;
+}
+
+// ─── Panel revisor ────────────────────────────────────────────────────────────
 
 export interface PostulacionBandejaItem {
   id: number;
@@ -91,8 +134,15 @@ export interface PostulacionBandejaItem {
 export async function getExpedientes(params?: {
   search?: string;
   page?: number;
+  estado?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
 }): Promise<{ data: PostulacionBandejaItem[]; total: number; page: number; totalPages: number }> {
-  const { data } = await api.get("/revisor/bandeja", { params });
+  // Omitir parámetros vacíos para no ensuciar la query
+  const limpio = Object.fromEntries(
+    Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== "")
+  );
+  const { data } = await api.get("/revisor/bandeja", { params: limpio });
   return data;
 }
 
@@ -103,9 +153,10 @@ export async function getPostulacionDetalle(id: number): Promise<PostulacionDeta
 
 export async function aprobarPostulacion(
   id: number,
-  carreraId: number
+  carreraId: number,
+  fechaAlta?: string
 ): Promise<{ codigoCIP: string }> {
-  const { data } = await api.post(`/revisor/${id}/aprobar`, { carreraId });
+  const { data } = await api.post(`/revisor/${id}/aprobar`, { carreraId, fechaAlta });
   return { codigoCIP: data.codigo };
 }
 
@@ -115,4 +166,18 @@ export async function observarPostulacion(
   revisorId: number
 ): Promise<void> {
   await api.post(`/revisor/${id}/observar`, { mensaje, revisorId });
+}
+
+export async function buscarPostulacionPorDNI(
+  dni: string
+): Promise<PostulacionDetalle> {
+  const { data } = await api.get(`/postulantes/buscar/${dni}`);
+  return data;
+}
+
+export async function subsanarPostulacion(
+  id: number,
+  body: { fotoUrl?: string; tituloUrl?: string; voucherUrl?: string }
+): Promise<void> {
+  await api.patch(`/postulantes/${id}`, body);
 }

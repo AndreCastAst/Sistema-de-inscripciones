@@ -1,0 +1,253 @@
+<!DOCTYPE html><html class="light" lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Bandeja de Expedientes - Panel Administrativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "watermark-red": "#EF4444",
+                        "status-observado-text": "#C2410C",
+                        "outline": "#8e706d",
+                        "on-primary-fixed": "#410003",
+                        "secondary-container": "#e5e2e1",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "outline-variant": "#e2bebb",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#656464",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-container": "#eceef0",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#6c5200",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#ffdf98",
+                        "status-rechazado-bg": "#FEE2E2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#a81b1f",
+                        "surface-tint": "#b52527",
+                        "on-surface": "#191c1e",
+                        "status-pendiente-text": "#B45309",
+                        "on-surface-variant": "#5a403e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3c54f",
+                        "status-observado-bg": "#FFEDD5",
+                        "on-primary-fixed-variant": "#920412",
+                        "status-pendiente-bg": "#FEF3C7",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#251a00",
+                        "inverse-primary": "#ffb3ad",
+                        "status-aprobado-bg": "#D1FAE5",
+                        "primary-fixed": "#ffdad6",
+                        "status-rechazado-text": "#B91C1C",
+                        "tertiary-fixed-dim": "#eec14b",
+                        "on-primary-container": "#ffbab4",
+                        "secondary": "#5f5e5e",
+                        "background": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "surface-variant": "#e0e3e5",
+                        "status-aprobado-text": "#047857",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#83000e",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary": "#503c00",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "container-max-form": "672px",
+                        "container-max-admin": "1152px",
+                        "md": "16px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-base": ["Inter"],
+                        "body-bold": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-medium": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-base": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "body-bold": ["15px", { "lineHeight": "22px", "fontWeight": "600" }],
+                        "label-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-medium": ["15px", { "lineHeight": "22px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-base flex h-screen overflow-hidden antialiased">
+<!-- SideNavBar -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-surface-container dark:bg-inverse-surface border-r border-outline-variant flex flex-col h-full gap-xs py-lg z-20">
+<!-- Header -->
+<div class="px-lg pb-md mb-sm border-b border-outline-variant flex flex-col gap-sm">
+<div class="flex items-center gap-md">
+<img alt="Avatar Revisor Regional" class="w-10 h-10 rounded-full object-cover border-2 border-outline-variant" data-alt="A professional headshot of a mature corporate manager in a clean, modern office setting with bright, high-key lighting. The style is crisp, authoritative, and aligns with a professional light-mode dashboard aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXChDF7mWKvh3eyjJnybpnDWmiSd5mhFWM9WNyRS8P8eH20Wo7w47C39Ni5YBsaVEEj2G-zmtjo-TOvLTB90G-Ued0aIWXA0dmnTWqGZj1QnM0U5vLKwPr9Kt0ChDQeUIG5w84sYm6J5ERsFWnieeyvWICBU6182VbsAt5Dru2-HhIDbffwez5A8_ZB16nP3emhOa-k8nux2GJ9hYIN5KGxxYEb97osnx_F7jRE-HwEEjwwMlBYXVpJVwhV6k_Rc_xyPLfIAsWgB0">
+<div>
+<h2 class="font-body-bold text-body-bold text-primary">Revisor Regional</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Consejo Departamental Lima</p>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto flex flex-col gap-unit px-sm">
+<!-- Active Tab -->
+<a class="bg-primary-container text-on-primary-container rounded-lg font-body-bold mx-sm px-md py-sm flex items-center gap-md scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder_shared</span>
+                Bandeja de Expedientes
+            </a>
+<!-- Inactive Tabs -->
+<a class="text-on-surface-variant dark:text-surface-variant hover:bg-secondary-container mx-sm px-md py-sm rounded-lg font-body-medium text-body-medium flex items-center gap-md dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+                Auditoría Documental
+            </a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:bg-secondary-container mx-sm px-md py-sm rounded-lg font-body-medium text-body-medium flex items-center gap-md dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined">point_of_sale</span>
+                Módulo de Ventanilla
+            </a>
+</div>
+<!-- Footer Actions -->
+<div class="mt-auto px-sm flex flex-col gap-unit pt-md border-t border-outline-variant">
+<a class="text-on-surface-variant dark:text-surface-variant hover:bg-secondary-container mx-sm px-md py-sm rounded-lg font-body-medium text-body-medium flex items-center gap-md dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform text-error" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Cerrar Sesión
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-64 flex-1 flex flex-col h-full overflow-hidden bg-background">
+<!-- Top Utility Bar (Contextual Filter) -->
+<header class="bg-surface-container-lowest border-b border-outline-variant px-lg py-md flex items-center justify-between z-10">
+<div class="flex items-center gap-md">
+<h1 class="font-headline-md text-headline-md text-on-surface">Bandeja de Expedientes</h1>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-sm bg-surface-container-low px-md py-1 rounded-lg border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">location_on</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sede:</span>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Trujillo</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="pl-10 pr-4 py-2 w-64 bg-surface-container-low border border-outline-variant rounded-lg font-body-base text-body-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow" placeholder="Buscar por DNI o Nombre..." type="text">
+</div>
+</div>
+</header>
+<!-- Data Canvas -->
+<div class="flex-1 overflow-y-auto p-lg">
+<div class="max-w-container-admin mx-auto flex flex-col gap-md">
+<!-- Table Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">DNI</th>
+<th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">Nombre del Postulante</th>
+<th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">Fecha de Ingreso</th>
+<th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider">Estado</th>
+<th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-semibold uppercase tracking-wider text-right">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row: Pendiente -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-md py-md font-body-medium text-body-medium text-on-surface">71234567</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface">Juan Carlos Pérez Gómez</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface-variant">12 Oct 2023</td>
+<td class="px-md py-md"><span class="inline-flex items-center px-sm py-unit rounded-md bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold border border-outline-variant">Nuevo</span></td>
+<td class="px-md py-md text-right"><button class="text-primary hover:text-primary-container font-body-medium text-body-medium flex items-center justify-end gap-unit w-full transition-colors">Revisar <span class="material-symbols-outlined text-[18px]">chevron_right</span></button></td>
+</tr>
+<!-- Row: En revisión -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-md py-md font-body-medium text-body-medium text-on-surface">45678901</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface">María Fernanda Silva Vargas</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface-variant">11 Oct 2023</td>
+<td class="px-md py-md"><span class="inline-flex items-center px-sm py-unit rounded-md bg-status-observado-bg text-status-observado-text font-label-sm text-label-sm font-semibold border border-[#FDBA74]">Observado</span></td>
+<td class="px-md py-md text-right"><div class="flex items-center justify-end w-full text-on-surface-variant font-body-medium text-body-medium">—</div></td>
+</tr>
+<!-- Row: Observado -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-md py-md font-body-medium text-body-medium text-on-surface">76543210</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface">Carlos Arturo Rojas Mejía</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface-variant">09 Oct 2023</td>
+<td class="px-md py-md"><span class="inline-flex items-center px-sm py-unit rounded-md bg-[#DBEAFE] text-[#1E40AF] font-label-sm text-label-sm font-semibold border border-[#BFDBFE]">Corregido</span></td>
+<td class="px-md py-md text-right"><button class="text-primary hover:text-primary-container font-body-medium text-body-medium flex items-center justify-end gap-unit w-full transition-colors">Revisar <span class="material-symbols-outlined text-[18px]">chevron_right</span></button></td>
+</tr>
+<!-- Row: Aprobado -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-md py-md font-body-medium text-body-medium text-on-surface">09876543</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface">Ana Lucía Castro Pinto</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface-variant">08 Oct 2023</td>
+<td class="px-md py-md"><span class="inline-flex items-center px-sm py-unit rounded-md bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold border border-outline-variant">Nuevo</span></td>
+<td class="px-md py-md text-right"><button class="text-primary hover:text-primary-container font-body-medium text-body-medium flex items-center justify-end gap-unit w-full transition-colors">Revisar <span class="material-symbols-outlined text-[18px]">chevron_right</span></button></td>
+</tr>
+<!-- Row: Rechazado -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-md py-md font-body-medium text-body-medium text-on-surface">11223344</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface">Luis Eduardo Torres Sánchez</td>
+<td class="px-md py-md font-body-base text-body-base text-on-surface-variant">05 Oct 2023</td>
+<td class="px-md py-md"><span class="inline-flex items-center px-sm py-unit rounded-md bg-status-aprobado-bg text-status-aprobado-text font-label-sm text-label-sm font-semibold border border-[#6EE7B7]">Admitido</span></td>
+<td class="px-md py-md text-right"><button class="text-secondary hover:text-on-surface font-body-medium text-body-medium flex items-center justify-end gap-unit w-full transition-colors">Ver Detalle <span class="material-symbols-outlined text-[18px]">visibility</span></button></td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination Footer -->
+<div class="bg-surface-container-low border-t border-outline-variant px-md py-sm flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Mostrando 1 a 5 de 142 expedientes</span>
+<div class="flex items-center gap-xs">
+<button class="p-xs text-on-surface-variant hover:bg-surface-container rounded transition-colors disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="px-sm py-unit font-label-sm text-label-sm bg-primary text-on-primary rounded">1</button>
+<button class="px-sm py-unit font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-container rounded transition-colors">2</button>
+<button class="px-sm py-unit font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-container rounded transition-colors">3</button>
+<span class="px-sm py-unit text-on-surface-variant">...</span>
+<button class="p-xs text-on-surface-variant hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

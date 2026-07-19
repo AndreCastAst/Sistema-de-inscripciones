@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Subsanación de Expediente - CIP</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "watermark-red": "#EF4444",
+                        "status-observado-text": "#C2410C",
+                        "outline": "#8e706d",
+                        "on-primary-fixed": "#410003",
+                        "secondary-container": "#e5e2e1",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "outline-variant": "#e2bebb",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#656464",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-container": "#eceef0",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#6c5200",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#ffdf98",
+                        "status-rechazado-bg": "#FEE2E2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#a81b1f",
+                        "surface-tint": "#b52527",
+                        "on-surface": "#191c1e",
+                        "status-pendiente-text": "#B45309",
+                        "on-surface-variant": "#5a403e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3c54f",
+                        "status-observado-bg": "#FFEDD5",
+                        "on-primary-fixed-variant": "#920412",
+                        "status-pendiente-bg": "#FEF3C7",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#251a00",
+                        "inverse-primary": "#ffb3ad",
+                        "status-aprobado-bg": "#D1FAE5",
+                        "primary-fixed": "#ffdad6",
+                        "status-rechazado-text": "#B91C1C",
+                        "tertiary-fixed-dim": "#eec14b",
+                        "on-primary-container": "#ffbab4",
+                        "secondary": "#5f5e5e",
+                        "background": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "surface-variant": "#e0e3e5",
+                        "status-aprobado-text": "#047857",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#83000e",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary": "#503c00",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "container-max-form": "672px",
+                        "container-max-admin": "1152px",
+                        "md": "16px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-base": ["Inter", "sans-serif"],
+                        "body-bold": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-medium": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-base": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "body-bold": ["15px", {"lineHeight": "22px", "fontWeight": "600"}],
+                        "label-sm": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-medium": ["15px", {"lineHeight": "22px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface flex flex-col min-h-screen antialiased">
+<!-- TopNavBar Shared Component -->
+<nav class="bg-surface border-b border-outline-variant docked full-width top-0 z-50">
+<div class="flex justify-between items-center px-lg py-md w-full max-w-container-admin mx-auto">
+<div class="flex items-center gap-md">
+<img alt="Logo CIP" class="h-[40px] w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeEpyGxuqkYAY2WGzfjQdKD1sr9USVgjjJhCuAA2IRqmi7Th2TSUQ_sjUns_dyJk0jcNVGLcaqgGsZsM5vXNvNhNo4YeOvKEG9v7CX2cZEplHXBx8XHWaQxQISxS11rjCJLDJV1-ktaOc078jny0V4yvmmpFDbf7hxK0YJYQtC43BpBbsx2aPA9PwvgVbauqg0gKH6BV2ZT3zTnHUuU2xZD_HG8cU8MMQF6279IZVvAr8tFo4SPXvQ9802l3MvxBALP_EkHR5Embs">
+<div class="font-display-lg text-display-lg text-primary uppercase tracking-tight">CIP - Sistema de Inscripciones</div>
+</div>
+<div class="hidden md:flex gap-lg items-center">
+<a class="text-on-surface-variant font-body-base hover:text-primary-container transition-colors cursor-pointer active:opacity-80 py-sm" href="#">Portal Público</a>
+</div>
+<button class="h-[40px] px-lg rounded-lg flex items-center justify-center font-body-bold bg-primary-container text-on-primary hover:opacity-90 transition-opacity hidden md:flex">
+                Acceso Administrativo
+            </button>
+<!-- Mobile Menu Icon (Placeholder) -->
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-admin mx-auto px-md md:px-lg py-xl flex flex-col gap-xl">
+<!-- Header Section -->
+<section class="w-full max-w-container-max-form mx-auto">
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant flex flex-col gap-md">
+<h1 class="font-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-status-observado-text">warning</span>
+Subsanación de Expediente Observado
+</h1>
+<p class="font-body-base text-on-surface-variant">Hemos detectado observaciones en su expediente. Por favor, corrija únicamente los campos/documentos señalados a continuación y reenvíe sin cargo adicional.</p>
+</div>
+</section>
+<!-- Expedient Info Card -->
+<section class="w-full max-w-container-max-form mx-auto">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
+<div>
+<p class="font-label-sm text-on-surface-variant mb-xs">Número de Expediente</p>
+<p class="font-body-bold text-on-surface mb-lg">#CIP-2024-8892</p>
+<div class="grid grid-cols-2 gap-lg">
+<div>
+<p class="font-label-sm text-on-surface-variant mb-xs">DNI</p>
+<p class="font-body-bold text-on-surface">72458912</p>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant mb-xs">Nombre Verificado</p>
+<p class="font-body-bold text-on-surface">Jorge Eugenio Arenas Abanto</p>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-sm text-on-surface-variant mb-xs">Estado Actual</p>
+<span class="inline-block px-md py-sm bg-status-observado-bg text-status-observado-text rounded-full font-label-sm font-bold">Observado</span>
+</div>
+</div>
+</section>
+<!-- Observaciones & Fields Section -->
+<section class="w-full max-w-container-max-form mx-auto">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
+<!-- Header -->
+<div class="bg-surface border-b border-outline-variant px-lg py-md">
+<h2 class="font-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-status-observado-text">assignment_late</span>
+Campos Observados (Editable)
+</h2>
+</div>
+<!-- Content -->
+<div class="p-lg flex flex-col gap-lg">
+<!-- Observación 1: Título Profesional -->
+<div class="border border-status-observado-text/30 rounded-lg p-md bg-status-observado-bg/30">
+<div class="flex items-start gap-md mb-md">
+<span class="material-symbols-outlined text-status-observado-text mt-xs">info</span>
+<div class="flex-1">
+<h4 class="font-body-bold text-on-surface mb-xs">Título Profesional (PDF)</h4>
+<p class="font-body-base text-on-surface-variant">Observación: Resolución ilegible, bordes cortados. Cargue nuevamente en formato PDF claro.</p>
+</div>
+</div>
+<div class="border-2 border-dashed border-status-observado-text rounded-xl p-lg flex flex-col items-center gap-sm bg-surface-container-lowest hover:bg-surface-bright transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[36px] text-status-observado-text group-hover:text-primary transition-colors">picture_as_pdf</span>
+<div class="text-center">
+<p class="font-body-bold text-on-background">Subir Título Profesional Corregido</p>
+<p class="font-label-sm text-on-surface-variant">PDF Máx. 10 MB</p>
+</div>
+<input class="hidden" type="file" accept=".pdf">
+</div>
+<p class="font-label-sm text-on-surface-variant mt-sm">Archivo actual: "titulo-eugenio-arenas.pdf" (será reemplazado)</p>
+</div>
+<!-- Observación 2: Fotografía -->
+<div class="border border-status-observado-text/30 rounded-lg p-md bg-status-observado-bg/30">
+<div class="flex items-start gap-md mb-md">
+<span class="material-symbols-outlined text-status-observado-text mt-xs">info</span>
+<div class="flex-1">
+<h4 class="font-body-bold text-on-surface mb-xs">Fotografía (JPG/PNG 3:4)</h4>
+<p class="font-body-base text-on-surface-variant">Observación: Proporción incorrecta, debe ser 3:4 (alto/ancho). Cargue fotografia con las especificaciones exactas.</p>
+</div>
+</div>
+<div class="border-2 border-dashed border-status-observado-text rounded-xl p-lg flex flex-col items-center gap-sm bg-surface-container-lowest hover:bg-surface-bright transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[36px] text-status-observado-text group-hover:text-primary transition-colors">add_a_photo</span>
+<div class="text-center">
+<p class="font-body-bold text-on-background">Subir Fotografía Corregida</p>
+<p class="font-label-sm text-on-surface-variant">JPG/PNG · Proporción 3:4</p>
+</div>
+<input class="hidden" type="file" accept=".jpg,.jpeg,.png">
+</div>
+<p class="font-label-sm text-on-surface-variant mt-sm">Archivo actual: "foto-eugenio.jpg" (será reemplazado)</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Campos No Observados (Read-only) -->
+<section class="w-full max-w-container-max-form mx-auto">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
+<div class="bg-surface border-b border-outline-variant px-lg py-md">
+<h3 class="font-body-bold text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-status-aprobado-text">check_circle</span>
+Campos Conformes (No editar)
+</h3>
+</div>
+<div class="p-lg grid grid-cols-1 md:grid-cols-2 gap-lg">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Correo Electrónico</label>
+<input class="w-full rounded-lg border-outline-variant border bg-surface-container-low px-md py-sm outline-none text-on-surface-variant font-body-base cursor-not-allowed" readonly value="jorge.arenas@email.com" type="email">
+<p class="font-label-sm text-on-surface-variant mt-xs">✓ Conforme</p>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Carrera Asignada</label>
+<input class="w-full rounded-lg border-outline-variant border bg-surface-container-low px-md py-sm outline-none text-on-surface-variant font-body-base cursor-not-allowed" readonly value="Ing. Civil" type="text">
+<p class="font-label-sm text-on-surface-variant mt-xs">✓ Asignado por Revisor</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Info Banner: Sin Cobro Adicional -->
+<section class="w-full max-w-container-max-form mx-auto">
+<div class="bg-status-aprobado-bg border border-status-aprobado-text/20 rounded-xl p-md flex items-start gap-md">
+<span class="material-symbols-outlined text-status-aprobado-text mt-xs">check_circle</span>
+<div>
+<h3 class="font-body-bold text-status-aprobado-text mb-xs">Sin Cobro Adicional</h3>
+<p class="font-body-base text-on-surface-variant">Esta subsanación no genera cobros adicionales. Su cuota de inscripción (S/ 1500.00) ya ha sido registrada.</p>
+<p class="font-label-sm text-on-surface-variant mt-sm">
+<span class="font-body-bold text-on-surface">Intentos sin límite:</span> Puede reenviar su expediente cuantas veces sea necesario hasta que sea aprobado.
+</p>
+</div>
+</div>
+</section>
+<!-- Action Buttons -->
+<section class="w-full max-w-container-max-form mx-auto flex flex-col gap-md">
+<div class="flex flex-col sm:flex-row gap-md justify-end">
+<button class="w-full sm:w-auto h-[48px] px-lg rounded flex items-center justify-center gap-sm font-body-bold bg-surface-container-lowest text-on-surface hover:bg-surface-dim transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+Limpiar Campos
+</button>
+<button class="w-full sm:w-auto h-[48px] px-xl rounded flex items-center justify-center gap-sm font-body-bold bg-primary text-on-primary hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">send</span>
+Reenviar Expediente Corregido
+</button>
+</div>
+<p class="font-label-sm text-on-surface-variant text-center">Al reenviar, el sistema cambiar automáticamente el estado del expediente a "Corregido" y lo presentará nuevamente al Revisor Regional.</p>
+</section>
+</main>
+<!-- Footer Shared Component -->
+</body></html>

@@ -139,6 +139,7 @@ export interface FormInscripcionCompleto extends FormDatosPersonales {
   fotoUrl?: string;
   tituloUrl?: string;
   voucherUrl?: string;
+  esFisico?: boolean;
 }
 
 /** Formulario de subsanación: el postulante corrige documentos observados */

@@ -1,8 +1,8 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { validate } from "../middlewares/validate";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 import { generarCodigo } from "../services/correlativo";
 import { enviarObservacion, enviarAprobacion } from "../services/email";
 import { firmarUrl } from "../services/cloudinary";
@@ -10,8 +10,18 @@ import { firmarUrl } from "../services/cloudinary";
 const router = Router();
 const prisma = new PrismaClient();
 
-// Todas las rutas del revisor requieren autenticación JWT
-router.use(requireAuth);
+// Todas las rutas del revisor requieren autenticación JWT y rol admin
+router.use(requireAuth, requireRole("admin"));
+
+// Filtro de sede: el super-admin (regionId null) ve todas las sedes,
+// un admin de sede solo ve/opera sobre su propia región.
+function regionWhere(req: Request): { regionId?: number } {
+  return req.usuario!.regionId === null ? {} : { regionId: req.usuario!.regionId };
+}
+
+function fueraDeSede(req: Request, regionId: number): boolean {
+  return req.usuario!.regionId !== null && regionId !== req.usuario!.regionId;
+}
 
 // GET /api/v1/revisor/bandeja?page=1&search=xxx&estado=PENDIENTE
 router.get("/bandeja", async (req, res, next) => {
@@ -20,14 +30,28 @@ router.get("/bandeja", async (req, res, next) => {
     const limit = 20;
     const skip = (page - 1) * limit;
     const search = (req.query.search as string | undefined)?.trim();
-    const estado = (req.query.estado as string | undefined) ?? undefined;
-    const regionId = req.query.regionId ? Number(req.query.regionId) : undefined;
+
+    const ESTADOS = ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO", "APROBADO", "RECHAZADO"];
+    const estadoParam = (req.query.estado as string | undefined)?.trim();
+    const estado = estadoParam && ESTADOS.includes(estadoParam) ? estadoParam : undefined;
+
+    // Rango de fechas por fecha de ingreso (creadoEn)
+    const fechaDesde = (req.query.fechaDesde as string | undefined)?.trim();
+    const fechaHasta = (req.query.fechaHasta as string | undefined)?.trim();
+    const creadoEn: { gte?: Date; lte?: Date } = {};
+    if (fechaDesde) {
+      const d = new Date(`${fechaDesde}T00:00:00`);
+      if (!isNaN(d.getTime())) creadoEn.gte = d;
+    }
+    if (fechaHasta) {
+      const d = new Date(`${fechaHasta}T23:59:59.999`);
+      if (!isNaN(d.getTime())) creadoEn.lte = d;
+    }
 
     const where: any = {
-      ...(estado
-        ? { estado }
-        : { estado: { in: ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO", "APROBADO", "RECHAZADO"] } }),
-      ...(regionId && { regionId }),
+      ...regionWhere(req),
+      ...(estado ? { estado } : { estado: { in: ESTADOS } }),
+      ...(creadoEn.gte || creadoEn.lte ? { creadoEn } : {}),
       ...(search && {
         OR: [
           { dni: { contains: search, mode: "insensitive" } },
@@ -71,6 +95,9 @@ router.get("/:id", async (req, res, next) => {
         observaciones: { include: { revisor: true }, orderBy: { creadoEn: "desc" } },
       },
     });
+    if (fueraDeSede(req, postulacion.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
     res.json(postulacion);
   } catch (err) {
     next(err);
@@ -83,6 +110,10 @@ router.post("/:id/iniciar", async (req, res, next) => {
     const id = Number(req.params.id);
     const actual = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
 
+    if (fueraDeSede(req, actual.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
+
     if (!["PENDIENTE", "SUBSANADO"].includes(actual.estado)) {
       return res.status(400).json({ error: "Solo se puede iniciar revisión de postulaciones PENDIENTE o SUBSANADO" });
     }
@@ -93,7 +124,7 @@ router.post("/:id/iniciar", async (req, res, next) => {
     });
 
     await prisma.auditoria.create({
-      data: { accion: "INICIO_REVISION", entidad: "Postulacion", entidadId: id, actorId: req.body.revisorId },
+      data: { accion: "INICIO_REVISION", entidad: "Postulacion", entidadId: id, actorId: req.usuario!.id },
     });
 
     res.json(postulacion);
@@ -113,6 +144,10 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
     const id = Number(req.params.id);
     const postulacion = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
 
+    if (fueraDeSede(req, postulacion.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
+
     const obs = await prisma.observacion.create({
       data: {
         postulacionId: id,
@@ -131,7 +166,7 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
         accion: "OBSERVACION",
         entidad: "Postulacion",
         entidadId: id,
-        actorId: req.body.revisorId,
+        actorId: req.usuario!.id,
         detalle: req.body.mensaje.substring(0, 100),
       },
     });
@@ -155,7 +190,24 @@ router.post("/:id/aprobar", async (req, res, next) => {
       return res.status(400).json({ error: "Debes seleccionar una especialidad antes de aprobar" });
     }
 
+    // Fecha de alta opcional (permite fechas pasadas para probar deudas de mensualidades)
+    let fechaAlta: Date | undefined;
+    if (req.body.fechaAlta) {
+      const parsed = new Date(req.body.fechaAlta);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({ error: "Fecha de alta inválida" });
+      }
+      if (parsed.getTime() > Date.now()) {
+        return res.status(400).json({ error: "La fecha de alta no puede ser futura" });
+      }
+      fechaAlta = parsed;
+    }
+
     const postulacion = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
+
+    if (fueraDeSede(req, postulacion.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
 
     if (!["PENDIENTE", "EN_REVISION", "SUBSANADO"].includes(postulacion.estado)) {
       return res.status(400).json({ error: "No se puede aprobar una postulación en estado " + postulacion.estado });
@@ -181,6 +233,7 @@ router.post("/:id/aprobar", async (req, res, next) => {
         regionId: postulacion.regionId,
         carreraId,
         fotoUrl: postulacion.fotoUrl ?? undefined,
+        fechaAlta,
       },
     });
 
@@ -194,7 +247,7 @@ router.post("/:id/aprobar", async (req, res, next) => {
         accion: "APROBACION",
         entidad: "Postulacion",
         entidadId: id,
-        actorId: req.body.revisorId,
+        actorId: req.usuario!.id,
         detalle: `Código generado: ${codigo}`,
       },
     });
@@ -217,6 +270,12 @@ const rechazarSchema = z.object({
 router.post("/:id/rechazar", validate(rechazarSchema), async (req, res, next) => {
   try {
     const id = Number(req.params.id);
+    const actual = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
+
+    if (fueraDeSede(req, actual.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
+
     await prisma.postulacion.update({
       where: { id },
       data: { estado: "RECHAZADO" },
@@ -227,7 +286,7 @@ router.post("/:id/rechazar", validate(rechazarSchema), async (req, res, next) =>
         accion: "RECHAZO",
         entidad: "Postulacion",
         entidadId: id,
-        actorId: req.body.revisorId,
+        actorId: req.usuario!.id,
         detalle: req.body.motivo,
       },
     });

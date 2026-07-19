@@ -48,7 +48,7 @@ router.get("/:codigo", async (req, res, next) => {
         pagadoEn: pago?.pagadoEn ?? null,
         metodoPago: pago?.metodoPago ?? null,
         voucherUrl: pago?.voucherUrl ?? null,
-        monto: 20,
+        monto: 1,
       };
     });
 
@@ -67,7 +67,7 @@ router.get("/:codigo", async (req, res, next) => {
       fotoUrl: colegiado.fotoUrl,
       fechaAlta: colegiado.fechaAlta,
       habilitado: mesesPendientes.length === 0,
-      deudaTotal: mesesPendientes.length * 20,
+      deudaTotal: mesesPendientes.length * 1,
       mesesPendientes,
       historialPagos,
     });

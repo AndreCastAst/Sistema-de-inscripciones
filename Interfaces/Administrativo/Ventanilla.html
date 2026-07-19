@@ -1,0 +1,478 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CIP - Módulo de Ventanilla</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for high-density tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f7f9fb; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d8dadc; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c8c6c5; 
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "watermark-red": "#EF4444",
+                        "status-observado-text": "#C2410C",
+                        "outline": "#8e706d",
+                        "on-primary-fixed": "#410003",
+                        "secondary-container": "#e5e2e1",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "outline-variant": "#e2bebb",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#656464",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-container": "#eceef0",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#6c5200",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#ffdf98",
+                        "status-rechazado-bg": "#FEE2E2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#a81b1f",
+                        "surface-tint": "#b52527",
+                        "on-surface": "#191c1e",
+                        "status-pendiente-text": "#B45309",
+                        "on-surface-variant": "#5a403e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3c54f",
+                        "status-observado-bg": "#FFEDD5",
+                        "on-primary-fixed-variant": "#920412",
+                        "status-pendiente-bg": "#FEF3C7",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#251a00",
+                        "inverse-primary": "#ffb3ad",
+                        "status-aprobado-bg": "#D1FAE5",
+                        "primary-fixed": "#ffdad6",
+                        "status-rechazado-text": "#B91C1C",
+                        "tertiary-fixed-dim": "#eec14b",
+                        "on-primary-container": "#ffbab4",
+                        "secondary": "#5f5e5e",
+                        "background": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "surface-variant": "#e0e3e5",
+                        "status-aprobado-text": "#047857",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#83000e",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary": "#503c00",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "container-max-form": "672px",
+                        "container-max-admin": "1152px",
+                        "md": "16px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-base": ["Inter"],
+                        "body-bold": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-medium": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-base": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "body-bold": ["15px", { "lineHeight": "22px", "fontWeight": "600" }],
+                        "label-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-medium": ["15px", { "lineHeight": "22px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-base min-h-screen flex">
+<!-- SideNavBar (Shared Component) -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-surface-container border-r border-outline-variant flex flex-col h-full py-lg z-10">
+<!-- Brand / Header -->
+<div class="px-md mb-lg">
+<h1 class="font-display-lg text-display-lg text-primary tracking-tight">CIP</h1>
+</div>
+<div class="px-md mb-xl flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+<div>
+<h2 class="font-body-bold text-body-bold text-on-background">Revisor Regional</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Consejo Departamental Lima</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-xs flex-1">
+<li class="">
+<a class="flex items-center gap-md mx-sm px-md py-sm text-on-surface-variant hover:bg-secondary-container transition-all font-body-medium text-body-medium rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">folder_shared</span>
+                    Bandeja de Expedientes
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-md mx-sm px-md py-sm text-on-surface-variant hover:bg-secondary-container transition-all font-body-medium text-body-medium rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">fact_check</span>
+                    Auditoría Documental
+                </a>
+</li><li class="">
+
+</li>
+<!-- Active State Navigation -->
+<li class="">
+<a class="flex items-center gap-md mx-sm px-md py-sm bg-primary-container text-on-primary-container rounded-lg font-body-bold text-body-bold" href="#">
+<span class="material-symbols-outlined filled">point_of_sale</span>
+                    Módulo de Ventanilla
+                </a>
+</li>
+</ul>
+<!-- Footer Links -->
+<ul class="flex flex-col gap-xs mt-auto pt-lg border-t border-outline-variant mx-md">
+<li class="">
+<a class="flex items-center gap-md px-sm py-sm text-on-surface-variant hover:bg-secondary-container transition-all font-body-medium text-body-medium rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Configuración
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-md px-sm py-sm text-on-surface-variant hover:bg-secondary-container transition-all font-body-medium text-body-medium rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+                    Cerrar Sesión
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 p-lg max-w-container-admin mx-auto w-full flex flex-col h-screen overflow-hidden">
+<!-- Header -->
+<header class="flex justify-between items-end mb-lg shrink-0">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-background mb-xs">Módulo de Ventanilla - Sede: Lima</h1>
+<p class="font-body-base text-body-base text-on-surface-variant">Atención presencial y recepción de expedientes.</p>
+</div>
+<div class="flex gap-sm">
+<div class="px-md py-sm bg-status-aprobado-bg text-status-aprobado-text rounded-full font-label-sm text-label-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] filled">check_circle</span>
+                    Caja Abierta
+                </div>
+</div>
+</header>
+<!-- Custom Tabs Navigation -->
+<nav class="flex gap-md border-b border-outline-variant mb-lg shrink-0" id="tab-nav">
+<button class="tab-btn text-body-bold border-b-2 pb-sm px-sm transition-colors font-body-bold text-primary border-primary active" data-target="tab-nuevo" onclick="switchTab('tab-nuevo')">
+                Nuevo Expediente Físico
+            </button>
+<button class="tab-btn text-body-base hover:text-primary pb-sm px-sm transition-colors border-b-2 flex items-center gap-xs font-body-base text-on-surface-variant border-transparent" data-target="tab-cobro" onclick="switchTab('tab-cobro')">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+                Terminal de Cobro
+            </button>
+</nav>
+<!-- Tab Contents Container (Scrollable) -->
+<div class="flex-1 overflow-y-auto pb-xl pr-sm relative">
+<!-- TAB 1: Nuevo Expediente Físico -->
+<div class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-lg" id="tab-nuevo">
+<!-- Column 1: Data Entry -->
+<div class="col-span-1 lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h3 class="font-headline-md text-headline-md text-on-background mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">badge</span>
+                        Transcripción de Datos
+                    </h3>
+<form class="flex flex-col gap-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">DNI del Solicitante</label>
+<div class="flex gap-sm">
+<input class="flex-1 rounded-lg border-outline-variant border bg-surface-container-lowest px-md py-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-shadow text-on-background font-body-base" placeholder="Ej. 12345678" type="text">
+<button class="bg-primary text-on-primary px-md py-sm rounded-lg hover:bg-primary-container transition-colors font-body-bold flex items-center gap-xs" type="button">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+                                    Validar RENIEC
+                                </button>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-md">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Nombres y Apellidos (Autocompletado)</label>
+<input class="w-full rounded-lg border-outline-variant border bg-surface-container-low px-md py-sm outline-none text-on-surface-variant font-body-base cursor-not-allowed" readonly="" type="text" value="MARCOS ALBERTO VILLA...">
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Correo Electrónico</label>
+<input class="w-full rounded-lg border-outline-variant border bg-surface-container-lowest px-md py-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-background font-body-base" placeholder="correo@ejemplo.com" type="email">
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Capítulo / Especialidad CIP <span class="text-error">*</span></label>
+<select class="w-full rounded-lg border-outline-variant border bg-surface-container-lowest px-md py-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-background font-body-base appearance-none">
+<option value="" disabled selected>Seleccionar del catálogo oficial CIP…</option>
+<option>Ing. Civil</option>
+<option>Ing. de Sistemas</option>
+<option>Ing. Electrónica</option>
+<option>Ing. Mecánica</option>
+<option>Ing. Industrial</option>
+<option>Ing. Química</option>
+<option>Ing. Ambiental</option>
+<option>Ing. Geológica y Geotécnica</option>
+<option>Ing. de Minas</option>
+<option>Ing. Pesquera</option>
+</select>
+<p class="font-label-sm text-on-surface-variant mt-xs">Obligatorio para poder aprobar el expediente.</p>
+</div>
+</form>
+</div>
+<!-- Column 2: Documents and Robust Payment -->
+<div class="col-span-1 lg:col-span-7 flex flex-col gap-lg">
+<!-- Document Uploads -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h3 class="font-headline-md text-headline-md text-on-background mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">scanner</span>
+            Subida de Documentación
+        </h3>
+<div class="grid grid-cols-2 gap-md">
+<div class="border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-low flex flex-col items-center justify-center p-md text-center group hover:bg-surface-container transition-colors cursor-pointer relative overflow-hidden">
+<span class="material-symbols-outlined text-[32px] text-on-surface-variant mb-xs group-hover:text-primary transition-colors">add_a_photo</span>
+<p class="font-body-bold text-body-bold text-on-background mb-xs text-sm">Fotografía (3:4)</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">JPG/PNG</p>
+</div>
+<div class="border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-low flex flex-col items-center justify-center p-md text-center group hover:bg-surface-container transition-colors cursor-pointer relative overflow-hidden">
+<span class="material-symbols-outlined text-[32px] text-on-surface-variant mb-xs group-hover:text-primary transition-colors">picture_as_pdf</span>
+<p class="font-body-bold text-body-bold text-on-background mb-xs text-sm">Título Profesional</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">PDF Máx 10MB</p>
+</div>
+</div>
+</div>
+<!-- Robust Payment Registration Section -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h3 class="font-headline-md text-headline-md text-on-background mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">payments</span>
+            Registro de Pago
+        </h3>
+<!-- Payment Tabs -->
+<div class="flex bg-surface-container-low p-1 rounded-lg mb-lg">
+<button class="flex-1 py-sm rounded-md text-on-surface-variant font-body-medium hover:bg-surface-container-lowest transition-all" id="pay-tab-cash" onclick="switchPaymentTab('cash')">Efectivo (Ventanilla)</button>
+<button class="flex-1 py-sm rounded-md text-on-surface-variant font-body-medium hover:bg-surface-container-lowest transition-all" id="pay-tab-digital" onclick="switchPaymentTab('digital')">Pasarela Digital</button>
+<button class="flex-1 py-sm rounded-md bg-surface-container-lowest text-primary font-body-bold shadow-sm" id="pay-tab-voucher" onclick="switchPaymentTab('voucher')">Voucher Bancario</button>
+</div>
+<!-- Fixed Amount Summary -->
+<div class="bg-surface-container-low p-md rounded-lg border border-outline-variant mb-md">
+<div class="flex justify-between items-center">
+<div class="flex flex-col">
+<span class="font-body-bold text-on-background">Cuota de Inscripción Ordinaria</span>
+<span class="font-label-sm text-on-surface-variant">Monto Fijo Institucional</span>
+</div>
+<span class="font-display-lg text-[28px] text-primary font-bold">S/ 1500.00</span>
+</div>
+</div>
+<!-- Tab-specific content -->
+<div class="payment-content block" id="payment-voucher-content">
+<div class="border-2 border-dashed border-outline-variant rounded-xl p-lg flex flex-col items-center gap-sm bg-surface-container-lowest hover:bg-surface-bright transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[40px] text-on-surface-variant group-hover:text-primary transition-colors">cloud_upload</span>
+<div class="text-center">
+<p class="font-body-bold text-on-background">Subir Voucher de Depósito/Transferencia</p>
+<p class="font-label-sm text-on-surface-variant">Formatos permitidos: JPG, PNG, PDF (Máx. 5MB)</p>
+</div>
+<input class="hidden" type="file">
+</div>
+</div>
+<div class="payment-content hidden" id="payment-cash-content">
+<div class="p-lg border border-outline-variant rounded-xl bg-surface-container-lowest flex items-center gap-md">
+<span class="material-symbols-outlined text-primary text-[32px]">point_of_sale</span>
+<p class="font-body-base text-on-surface-variant">El pago se realizará directamente en la ventanilla de recaudación antes de finalizar el registro.</p>
+</div>
+</div>
+<div class="payment-content hidden" id="payment-digital-content">
+<div class="p-lg border border-outline-variant rounded-xl bg-surface-container-lowest flex items-center gap-md">
+<span class="material-symbols-outlined text-primary text-[32px]">credit_card</span>
+<p class="font-body-base text-on-surface-variant">Se habilitará el terminal POS o link de pago para transacción inmediata.</p>
+</div>
+</div>
+<div class="mt-md">
+<button class="w-full bg-surface-container text-on-surface font-body-bold py-sm rounded-lg flex items-center justify-center gap-xs hover:bg-surface-container-high transition-colors border border-outline-variant">
+<span class="material-symbols-outlined">print</span>
+        Generar Comprobante Imprimible
+    </button>
+</div>
+</div>
+<!-- Form Actions -->
+<div class="flex flex-col gap-sm">
+<div class="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm flex items-start gap-sm">
+<span class="material-symbols-outlined text-[18px] text-status-aprobado-text mt-xs">check_circle</span>
+<p class="font-label-sm text-on-surface-variant">Al aprobar, el sistema genera el <span class="font-body-bold text-on-surface">código CIP de 5 dígitos</span>, cambia el rol a Colegiado y envía el carnet al correo registrado.</p>
+</div>
+<div class="flex justify-end gap-md">
+<button class="px-lg py-md border border-outline-variant text-secondary font-body-bold rounded-lg hover:bg-surface-container transition-colors">
+Limpiar
+</button>
+<button class="px-lg py-md bg-primary text-on-primary font-body-bold rounded-lg hover:bg-primary-container transition-colors shadow-md flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">how_to_reg</span>
+Aprobar e Inscribir como Colegiado
+</button>
+</div>
+</div>
+</div></div>
+<!-- TAB 2: Terminal de Cobro -->
+<div class="tab-content flex flex-col h-full gap-lg hidden" id="tab-cobro">
+<!-- Top search -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex gap-md items-center">
+<span class="material-symbols-outlined text-on-surface-variant ml-sm">point_of_sale</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 outline-none text-on-background font-headline-md text-headline-md placeholder:text-surface-dim" placeholder="Ingresar DNI o Código CIP para consultar deuda..." type="text">
+<button class="px-xl py-md bg-surface-container-highest text-on-background font-body-bold rounded-lg hover:bg-secondary-container transition-colors border border-outline-variant">
+                        Consultar
+                    </button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-lg flex-1">
+<!-- Left: Debt Details -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex flex-col">
+<div class="border-b border-outline-variant pb-md mb-md flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-background">Carlos Alberto Mendoza Ruiz</h3>
+<p class="font-body-base text-body-base text-on-surface-variant">DNI: 45892103 • Especialidad: Ing. Civil</p>
+</div>
+<span class="px-sm py-xs bg-status-pendiente-bg text-status-pendiente-text rounded-md font-label-sm text-label-sm font-bold">Deuda Pendiente</span>
+</div>
+<div class="flex-1">
+<h4 class="font-body-bold text-body-bold text-on-surface-variant mb-sm uppercase tracking-wide text-[12px]">Mensualidades Pendientes</h4>
+<div class="flex items-start gap-sm bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm mb-md">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mt-xs">info</span>
+<p class="font-label-sm text-on-surface-variant">Solo se pueden registrar mensualidades de colegiados. Las mensualidades deben pagarse en orden cronológico.</p>
+</div>
+<!-- Mensualidad Items -->
+<label class="flex items-start gap-md p-md border border-outline-variant rounded-lg mb-sm cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input checked="" class="mt-1 rounded text-primary focus:ring-primary border-outline-variant w-5 h-5 cursor-pointer" type="checkbox">
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="font-body-bold text-body-bold text-on-background">Mensualidad (Enero - Marzo 2024)</span>
+<span class="font-body-bold text-body-bold text-on-background">S/ 60.00</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">3 meses x S/ 20.00</p>
+</div>
+</label>
+</div>
+</div>
+<!-- Right: Checkout & Receipt -->
+<div class="bg-surface-container bg-opacity-50 border border-outline-variant rounded-xl p-lg shadow-sm flex flex-col justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-background mb-lg flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">receipt</span>
+                                Resumen de Cobro
+                            </h3>
+<div class="bg-surface-container-lowest p-lg border border-outline-variant rounded-lg border-dashed">
+<div class="flex justify-between mb-sm font-body-base text-body-base text-on-surface-variant">
+<span class="">Subtotal</span>
+<span class="">S/ 60.00</span>
+</div>
+<div class="flex justify-between mb-md font-body-base text-body-base text-on-surface-variant">
+<span class="">IGV (18%)</span>
+<span class="">S/ 0.00</span>
+</div>
+<div class="border-t border-outline-variant pt-md flex justify-between font-display-lg text-[24px] font-bold text-on-background">
+<span class="">Total a Cobrar</span>
+<span class="">S/ 60.00</span>
+</div>
+<div class="mt-sm text-right">
+<span class="inline-block bg-surface-variant text-on-surface-variant px-sm py-xs rounded font-label-sm text-label-sm">Pago en Efectivo (Ventanilla)</span>
+</div>
+</div>
+</div>
+<div class="mt-xl flex flex-col gap-md">
+<button class="w-full py-xl bg-primary text-on-primary font-display-lg text-[20px] font-bold rounded-xl hover:bg-primary-container hover:text-on-primary-container transition-all shadow-md flex items-center justify-center gap-sm group">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">local_atm</span>
+                                Confirmar Cobro S/ 60.00 e Imprimir
+                            </button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant">
+                                Se generará y descargará automáticamente el Comprobante PDF (Boleta de Venta).
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Inline JS for Tab Switching -->
+<script>
+        function switchTab(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            // Show target content
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // Reset all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('font-body-bold', 'text-primary', 'border-primary', 'active');
+                btn.classList.add('font-body-base', 'text-on-surface-variant', 'border-transparent');
+            });
+
+            // Activate clicked button
+            const activeBtn = document.querySelector(`.tab-btn[data-target="${tabId}"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('font-body-base', 'text-on-surface-variant', 'border-transparent');
+                activeBtn.classList.add('font-body-bold', 'text-primary', 'border-primary', 'active');
+            }
+        }
+
+        function switchPaymentTab(type) {
+            // Update visibility
+            document.querySelectorAll('.payment-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`payment-${type}-content`).classList.remove('hidden');
+
+            // Update button styles
+            const tabs = ['cash', 'digital', 'voucher'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`pay-tab-${t}`);
+                if (t === type) {
+                    btn.classList.add('bg-surface-container-lowest', 'text-primary', 'font-body-bold', 'shadow-sm');
+                    btn.classList.remove('text-on-surface-variant', 'font-body-medium');
+                } else {
+                    btn.classList.remove('bg-surface-container-lowest', 'text-primary', 'font-body-bold', 'shadow-sm');
+                    btn.classList.add('text-on-surface-variant', 'font-body-medium');
+                }
+            });
+        }
+    </script>
+
+
+</body></html>

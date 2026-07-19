@@ -1,0 +1,315 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Consulta de Carnet y Pagos - CIP</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "watermark-red": "#EF4444",
+                        "status-observado-text": "#C2410C",
+                        "outline": "#8e706d",
+                        "on-primary-fixed": "#410003",
+                        "secondary-container": "#e5e2e1",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "outline-variant": "#e2bebb",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#656464",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-container": "#eceef0",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#6c5200",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#ffdf98",
+                        "status-rechazado-bg": "#FEE2E2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#a81b1f",
+                        "surface-tint": "#b52527",
+                        "on-surface": "#191c1e",
+                        "status-pendiente-text": "#B45309",
+                        "on-surface-variant": "#5a403e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3c54f",
+                        "status-observado-bg": "#FFEDD5",
+                        "on-primary-fixed-variant": "#920412",
+                        "status-pendiente-bg": "#FEF3C7",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#251a00",
+                        "inverse-primary": "#ffb3ad",
+                        "status-aprobado-bg": "#D1FAE5",
+                        "primary-fixed": "#ffdad6",
+                        "status-rechazado-text": "#B91C1C",
+                        "tertiary-fixed-dim": "#eec14b",
+                        "on-primary-container": "#ffbab4",
+                        "secondary": "#5f5e5e",
+                        "background": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "surface-variant": "#e0e3e5",
+                        "status-aprobado-text": "#047857",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#83000e",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary": "#503c00",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "container-max-form": "672px",
+                        "container-max-admin": "1152px",
+                        "md": "16px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-base": ["Inter", "sans-serif"],
+                        "body-bold": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-medium": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-base": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "body-bold": ["15px", {"lineHeight": "22px", "fontWeight": "600"}],
+                        "label-sm": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-medium": ["15px", {"lineHeight": "22px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface flex flex-col min-h-screen antialiased">
+<!-- TopNavBar Shared Component -->
+<nav class="bg-surface border-b border-outline-variant docked full-width top-0 z-50">
+<div class="flex justify-between items-center px-lg py-md w-full max-w-container-admin mx-auto">
+<div class="flex items-center gap-md">
+<img alt="Logo CIP" class="h-[40px] w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeEpyGxuqkYAY2WGzfjQdKD1sr9USVgjjJhCuAA2IRqmi7Th2TSUQ_sjUns_dyJk0jcNVGLcaqgGsZsM5vXNvNhNo4YeOvKEG9v7CX2cZEplHXBx8XHWaQxQISxS11rjCJLDJV1-ktaOc078jny0V4yvmmpFDbf7hxK0YJYQtC43BpBbsx2aPA9PwvgVbauqg0gKH6BV2ZT3zTnHUuU2xZD_HG8cU8MMQF6279IZVvAr8tFo4SPXvQ9802l3MvxBALP_EkHR5Embs">
+<div class="font-display-lg text-display-lg text-primary uppercase tracking-tight">CIP - Sistema de Inscripciones</div>
+</div>
+<div class="hidden md:flex gap-lg items-center">
+<a class="text-on-surface-variant font-body-base hover:text-primary-container transition-colors cursor-pointer active:opacity-80 py-sm" href="#">Portal Público</a>
+<a class="text-primary font-body-bold border-b-2 border-primary py-sm cursor-pointer active:opacity-80" href="#">Consulta de Carnet y Pagos</a>
+</div>
+<button class="h-[40px] px-lg rounded-lg flex items-center justify-center font-body-bold bg-primary-container text-on-primary hover:opacity-90 transition-opacity hidden md:flex">
+                Acceso Administrativo
+            </button>
+<!-- Mobile Menu Icon (Placeholder) -->
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-admin mx-auto px-md md:px-lg py-xl flex flex-col gap-xl">
+<!-- Search Section -->
+<section class="w-full max-w-container-max-form mx-auto">
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant flex flex-col gap-md">
+<h1 class="font-headline-md text-on-surface">Consulta de Estado y Habilidad</h1>
+<p class="font-body-base text-on-surface-variant">Ingrese su DNI o Código CIP para verificar el estado actual, visualizar su carnet digital y consultar deudas pendientes.</p>
+<div class="flex flex-col sm:flex-row gap-sm mt-sm">
+<div class="relative flex-grow">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-secondary-fixed-dim">search</span>
+<input class="w-full h-[48px] pl-[48px] pr-md bg-surface-bright border border-outline-variant rounded focus:border-primary focus:border-[2px] outline-none transition-all font-body-base text-on-surface placeholder:text-secondary-fixed-dim" placeholder="Número de DNI o Código CIP" type="text" value="72458912">
+</div>
+<button class="h-[48px] px-xl rounded flex items-center justify-center font-body-bold bg-primary text-on-primary hover:bg-primary-container transition-colors shrink-0">
+                        Buscar
+                    </button>
+</div>
+</div>
+</section>
+<!-- Results Section (Simulated State: Found with Debt) -->
+<section class="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-xl items-start">
+<!-- Left Column: Carnet Viewer -->
+<div class="flex flex-col gap-sm items-center lg:items-start w-full lg:w-auto">
+<h2 class="font-body-bold text-on-surface px-sm">Vista Previa de Carnet</h2>
+<!-- Physical Carnet Card Specs: 320x480, Black Metal header, 3px Gold line, Watermark -->
+<div class="w-[480px] h-[320px] bg-white rounded-lg border border-outline-variant overflow-hidden relative shadow-md flex flex-col mx-auto shrink-0 select-none font-['Inter',sans-serif] text-black">
+<!-- Header with Logo and Text -->
+<div class="absolute top-0 left-0 right-0 px-4 py-2 flex items-start gap-4">
+<div class="w-16 h-16 shrink-0">
+<img alt="CIP Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9uAJIWU3wPT_a5k6L6V-deccwXRfk0nf3BQ_f2Y5-wvtJnZMBhCa4BWmhuZwCVFHIZhmx2EsYee4YmNSX1jBb135oA0w6mk45c8hwQVNmQmt8sGs5U-RsnDiWqEGurxCoaK4_fWjznSx9EsOppQYtalG0BUEiAYObnfbKSxbGVQPYRZSiZRodPnOffYWhdFya5ECujxHbEIFWsYp-JAXvxJ1d4YdaAt3y34hFM1TRLLd1YspOEBEupFjNgG3ViZSVXis-BxKzrQM" style="clip-path: inset(0 80% 80% 0); transform: scale(3.5); transform-origin: top left;">
+</div>
+<div class="flex-grow text-center pr-12">
+<div class="text-[#002855] font-bold text-[22px] leading-tight">
+                COLEGIO DE INGENIEROS<br>
+                DEL PERU
+            </div>
+</div>
+</div>
+<!-- Body: Photo and Details -->
+<div class="mt-20 px-8 flex gap-8 items-start">
+<!-- Photo Section -->
+<div class="w-[130px] h-[160px] border border-gray-300 overflow-hidden">
+<img alt="Member Photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9uAJIWU3wPT_a5k6L6V-deccwXRfk0nf3BQ_f2Y5-wvtJnZMBhCa4BWmhuZwCVFHIZhmx2EsYee4YmNSX1jBb135oA0w6mk45c8hwQVNmQmt8sGs5U-RsnDiWqEGurxCoaK4_fWjznSx9EsOppQYtalG0BUEiAYObnfbKSxbGVQPYRZSiZRodPnOffYWhdFya5ECujxHbEIFWsYp-JAXvxJ1d4YdaAt3y34hFM1TRLLd1YspOEBEupFjNgG3ViZSVXis-BxKzrQM" style="object-position: -20px 145px; transform: scale(3.2);">
+</div>
+<!-- Text Details Section -->
+<div class="flex flex-col gap-1 text-[18px] font-bold text-black uppercase pt-2">
+<div class="">ARENAS</div>
+<div class="">ABANTO</div>
+<div class="">JORGE EUGENIO</div>
+<div class="text-[14px] font-medium mt-2 normal-case">Ing. CIVIL</div>
+<div class="text-[14px] font-medium normal-case"><span class="font-bold">IDNI:</span> 26606666</div>
+</div>
+</div>
+<!-- Registration Number Footer -->
+<div class="absolute bottom-4 right-8 text-[22px] font-bold text-black">
+        Nº Reg. CIP: 31333
+    </div>
+<!-- Watermark Overlay (Preserved from existing state) -->
+<div class="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none z-20 mix-blend-multiply">
+<div class="text-watermark-red opacity-[0.2] font-display-lg text-[48px] font-extrabold uppercase tracking-widest -rotate-[30deg] select-none scale-150 border-4 border-watermark-red px-md py-sm">
+            inhabilitado/mor3n
+        </div>
+</div>
+</div>
+<div class="text-label-sm text-on-surface-variant text-center w-full max-w-[320px] mt-xs">
+<span class="material-symbols-outlined text-[16px] align-text-bottom mr-xs text-primary">info</span>
+                    El carnet digital no es válido mientras mantenga estado inhabilitado.
+                </div>
+</div>
+<!-- Right Column: Status & Payment Module -->
+<div class="flex flex-col gap-lg w-full">
+<!-- Status Banner -->
+<div class="bg-status-rechazado-bg border border-status-rechazado-text/20 rounded-xl p-md flex items-start gap-md">
+<span class="material-symbols-outlined text-status-rechazado-text mt-xs">error</span>
+<div>
+<h3 class="font-body-bold text-status-rechazado-text">Estado Actual: Inhabilitado</h3>
+<p class="font-body-base text-on-surface-variant mt-xs">El colegiado se encuentra inhabilitado para el ejercicio profesional debido a deudas en sus cuotas institucionales.</p>
+</div>
+</div>
+<!-- Debt Calculation Table -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-sm">
+<div class="bg-surface border-b border-outline-variant px-lg py-md flex justify-between items-center">
+<h3 class="font-headline-md text-on-surface">Detalle de Deuda</h3>
+<span class="font-label-sm text-secondary-fixed bg-on-secondary-fixed px-sm py-xs rounded">Cuota Mensual: S/ 20.00</span>
+</div>
+<div class="p-0">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-low">
+<th class="font-label-sm text-on-surface-variant px-lg py-sm font-medium">Concepto</th>
+<th class="font-label-sm text-on-surface-variant px-lg py-sm font-medium text-right">Monto</th>
+</tr>
+</thead>
+<tbody class="font-body-base text-on-surface">
+<tr class="border-b border-outline-variant/50 hover:bg-surface-bright transition-colors">
+<td class="px-lg py-md">
+<div class="font-body-medium">Cuotas Atrasadas Año 2023</div>
+<div class="text-label-sm text-on-surface-variant">Septiembre, Octubre, Noviembre, Diciembre (4 meses)</div>
+</td>
+<td class="px-lg py-md text-right tabular-nums">S/ 80.00</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-bright transition-colors">
+<td class="px-lg py-md">
+<div class="font-body-medium">Cuotas Atrasadas Año 2024</div>
+<div class="text-label-sm text-on-surface-variant">Enero, Febrero, Marzo (3 meses)</div>
+</td>
+<td class="px-lg py-md text-right tabular-nums">S/ 60.00</td>
+</tr>
+<tr class="bg-surface-dim">
+<td class="px-lg py-md font-headline-md text-right">Total a Pagar</td>
+<td class="px-lg py-md font-headline-md text-right text-primary tabular-nums">S/ 140.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Payment Actions -->
+<div class="p-lg bg-surface border-t border-outline-variant flex flex-col gap-md">
+<h4 class="font-body-bold text-on-surface">Registrar Pago</h4>
+<!-- Payment Method Selection -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
+<label class="cursor-pointer">
+<input checked class="peer sr-only" name="pay_method" type="radio" value="online">
+<div class="border-2 border-primary bg-primary/5 rounded-xl p-md flex flex-col items-center justify-center text-center transition-all peer-not-checked:border-outline-variant peer-not-checked:bg-transparent">
+<span class="material-symbols-outlined text-[28px] text-primary mb-xs">credit_card</span>
+<div class="font-body-bold text-on-surface">Pagar en Línea</div>
+<div class="font-label-sm text-on-surface-variant mt-xs">Pasarela integrada (tarjeta)</div>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="pay_method" type="radio" value="voucher">
+<div class="border-2 border-outline-variant rounded-xl p-md flex flex-col items-center justify-center text-center hover:border-primary transition-all">
+<span class="material-symbols-outlined text-[28px] text-secondary mb-xs">upload_file</span>
+<div class="font-body-bold text-on-surface">Subir Voucher</div>
+<div class="font-label-sm text-on-surface-variant mt-xs">Transferencia o depósito bancario</div>
+</div>
+</label>
+</div>
+<!-- Voucher Upload Placeholder (hidden by default) -->
+<div class="hidden border-2 border-dashed border-outline-variant rounded-xl p-lg flex-col items-center gap-sm bg-surface-container-lowest cursor-pointer group" id="voucher-area">
+<span class="material-symbols-outlined text-[36px] text-on-surface-variant group-hover:text-primary transition-colors">cloud_upload</span>
+<p class="font-body-bold text-on-background">Subir comprobante de transferencia / depósito</p>
+<p class="font-label-sm text-on-surface-variant">JPG, PNG o PDF · Máx. 5 MB</p>
+</div>
+<!-- Note about cash -->
+<div class="flex items-start gap-sm bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant mt-xs">info</span>
+<p class="font-label-sm text-on-surface-variant">El pago en efectivo es gestionado directamente por el Revisor Regional desde el módulo <span class="font-body-bold text-on-surface">Terminal de Cobro</span>.</p>
+</div>
+<div class="flex flex-col sm:flex-row gap-md justify-end">
+<button class="w-full sm:w-auto h-[48px] px-lg rounded flex items-center justify-center gap-sm font-body-bold bg-surface-container-lowest text-on-surface hover:bg-surface-dim transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[20px]">download</span>
+Estado de Cuenta
+</button>
+<button class="w-full sm:w-auto h-[48px] px-xl rounded flex items-center justify-center gap-sm font-body-bold bg-primary text-on-primary hover:bg-primary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">credit_card</span>
+Procesar Pago S/ 140.00
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Shared Component -->
+</body></html>

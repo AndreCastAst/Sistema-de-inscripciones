@@ -1,0 +1,246 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Inscripción Virtual - CIP</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "watermark-red": "#EF4444",
+                        "status-observado-text": "#C2410C",
+                        "outline": "#8e706d",
+                        "on-primary-fixed": "#410003",
+                        "secondary-container": "#e5e2e1",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "outline-variant": "#e2bebb",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#656464",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-container": "#eceef0",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#6c5200",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#ffdf98",
+                        "status-rechazado-bg": "#FEE2E2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#a81b1f",
+                        "surface-tint": "#b52527",
+                        "on-surface": "#191c1e",
+                        "status-pendiente-text": "#B45309",
+                        "on-surface-variant": "#5a403e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3c54f",
+                        "status-observado-bg": "#FFEDD5",
+                        "on-primary-fixed-variant": "#920412",
+                        "status-pendiente-bg": "#FEF3C7",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#251a00",
+                        "inverse-primary": "#ffb3ad",
+                        "status-aprobado-bg": "#D1FAE5",
+                        "primary-fixed": "#ffdad6",
+                        "status-rechazado-text": "#B91C1C",
+                        "tertiary-fixed-dim": "#eec14b",
+                        "on-primary-container": "#ffbab4",
+                        "secondary": "#5f5e5e",
+                        "background": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "surface-variant": "#e0e3e5",
+                        "status-aprobado-text": "#047857",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#83000e",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary": "#503c00",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "container-max-form": "672px",
+                        "container-max-admin": "1152px",
+                        "md": "16px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-base": ["Inter", "sans-serif"],
+                        "body-bold": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-medium": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-base": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "body-bold": ["15px", { "lineHeight": "22px", "fontWeight": "600" }],
+                        "label-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-medium": ["15px", { "lineHeight": "22px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            color: #191c1e;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface dark:bg-inverse-surface border-b border-surface-variant sticky top-0 z-50">
+<div class="flex justify-between items-center px-lg py-md w-full max-w-container-admin mx-auto">
+<!-- Brand -->
+<div class="flex items-center gap-sm">
+<img alt="Logo CIP" class="w-10 h-10 object-contain rounded-DEFAULT" src="https://lh3.googleusercontent.com/aida/ADBb0uissQ9Mkaka71Wj9rVWWdPZR7bOc_Z2-NOSXw49LkkMj9lR203LTxzmzbvgfaYEUaegPnHkJLVPBu1lnZYVLL400RBZ2KbcK0jndE0BrS_vgi-W7W8Pxo68fkPw_V1Z2G0cU5tUOmY5P9CDTuoqHEVcBFG43-bpjK8u4Dbz39qZ5VtJzsLz7-KAm6UJz53SkBTh1LZwUU25O2MUrDzPpRBKWJZbixeQ0xT7Lx0YJ9-HjjLlv-suFT_y7gCnEARqlvykLCaVPX_9-A">
+<h1 class="font-display-lg text-display-lg text-primary dark:text-primary-fixed uppercase tracking-tight hidden md:block">CIP - Sistema de Inscripciones</h1>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary dark:text-primary-fixed uppercase tracking-tight md:hidden">CIP</h1>
+</div>
+<!-- Navigation Links (Hidden on mobile) -->
+<nav class="hidden md:flex gap-lg"><a class="text-primary dark:text-primary-fixed font-body-bold border-b-2 border-primary py-2 cursor-pointer active:opacity-80 transition-colors" href="#">Portal Público</a><a class="text-on-surface-variant dark:text-surface-variant font-body-medium py-2 cursor-pointer active:opacity-80 transition-colors hover:text-primary" href="#">Consulta de Carnet y Pagos</a></nav>
+<!-- Trailing Action -->
+<div><button class="font-body-bold text-body-bold bg-primary-container text-on-primary px-lg py-2.5 rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">Acceso Administrativo</button></div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow py-xl px-md md:px-lg">
+<div class="max-w-container-max-form mx-auto w-full bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+<!-- Form Header -->
+<div class="bg-surface-container-low px-lg py-md border-b border-outline-variant/30 text-center">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-xs">Formulario de Inscripción Virtual</h2>
+<p class="font-body-base text-body-base text-on-surface-variant">Complete los datos solicitados con veracidad para iniciar su proceso de colegiatura.</p>
+</div>
+<div class="p-lg md:p-xl space-y-xl">
+<!-- Section: Identidad -->
+<section>
+<div class="flex items-center gap-sm mb-md border-b border-surface-variant pb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">badge</span>
+<h3 class="font-body-bold text-body-bold text-on-surface">Identidad del Postulante</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="dni">Documento de Identidad (DNI)</label>
+<div class="flex gap-sm">
+<input class="flex-grow font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded-DEFAULT px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-on-surface-variant/50" id="dni" placeholder="Ingrese 8 dígitos" type="text">
+<button class="bg-surface-container text-primary font-body-bold px-md rounded-DEFAULT hover:bg-secondary-container transition-colors border border-outline-variant" type="button">Validar</button>
+</div>
+</div>
+<div class="flex flex-col gap-xs md:col-span-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="nombres">Nombres y Apellidos (RENIEC)</label>
+<input class="font-body-base text-body-base bg-surface-container-high border border-outline-variant/50 rounded-DEFAULT px-md py-sm text-on-secondary-fixed-variant cursor-not-allowed" disabled="" id="nombres" type="text" value="ESPERANDO VALIDACIÓN RENIEC">
+</div>
+</div>
+</section>
+<!-- Section: Contacto -->
+<section>
+<div class="flex items-center gap-sm mb-md border-b border-surface-variant pb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">mail</span>
+<h3 class="font-body-bold text-body-bold text-on-surface">Información de Contacto</h3>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant" for="email">Correo Electrónico Principal</label>
+<input class="font-body-base text-body-base bg-surface-container-lowest border border-outline-variant rounded-DEFAULT px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="email" placeholder="ejemplo@correo.com" type="email">
+<p class="font-label-sm text-label-sm text-on-surface-variant/70 mt-1">Este correo será utilizado para todas las notificaciones oficiales.</p>
+</div>
+</section>
+<!-- Section: Documentos -->
+<section>
+<div class="flex items-center gap-sm mb-md border-b border-surface-variant pb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">upload_file</span>
+<h3 class="font-body-bold text-body-bold text-on-surface">Carga de Requisitos</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Foto -->
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-md text-center bg-surface-bright flex flex-col items-center justify-center min-h-[160px] hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-outline text-3xl mb-sm group-hover:text-primary transition-colors">add_a_photo</span>
+<span class="font-body-medium text-body-medium text-on-surface mb-xs">Subir Fotografía (3:4)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center max-w-[200px]">Fondo blanco, vestimenta formal. Máx 2MB (JPG/PNG).</span>
+</div>
+<!-- PDF -->
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-md text-center bg-surface-bright flex flex-col items-center justify-center min-h-[160px] hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-outline text-3xl mb-sm group-hover:text-primary transition-colors">description</span>
+<span class="font-body-medium text-body-medium text-on-surface mb-xs">Título Profesional (PDF)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center max-w-[200px]">Escaneo legible de anverso y reverso. Máx 5MB.</span>
+</div>
+</div>
+</section>
+<!-- Section: Pago -->
+<section>
+<div class="flex items-center gap-sm mb-md border-b border-surface-variant pb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">payments</span>
+<h3 class="font-body-bold text-body-bold text-on-surface">Modalidad de Pago</h3>
+</div>
+<div class="space-y-sm">
+<label class="flex items-center gap-sm p-sm rounded-lg border border-outline-variant bg-surface-bright cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:bg-primary-fixed/20 has-[:checked]:border-primary">
+<input class="text-primary focus:ring-primary h-4 w-4 border-outline-variant" name="payment_method" type="radio" value="integrated">
+<span class="font-body-medium text-body-medium text-on-surface flex-grow">Pasarela Integrada (Tarjeta Crédito/Débito)</span>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">credit_card</span>
+</label>
+<label class="flex items-center gap-sm p-sm rounded-lg border border-outline-variant bg-surface-bright cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:bg-primary-fixed/20 has-[:checked]:border-primary">
+<input class="text-primary focus:ring-primary h-4 w-4 border-outline-variant" name="payment_method" type="radio" value="voucher">
+<span class="font-body-medium text-body-medium text-on-surface flex-grow">Voucher Externo (Depósito/Transferencia)</span>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">receipt</span>
+</label>
+</div>
+</section>
+<!-- Form Actions -->
+<div class="pt-md border-t border-surface-variant flex justify-end">
+<button class="bg-primary text-on-primary font-body-bold text-body-bold py-3 px-xl rounded-lg opacity-50 cursor-not-allowed hover:bg-primary-container transition-colors shadow-sm flex items-center gap-sm" disabled="" type="button">
+                        Enviar Solicitud
+                        <span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer (Shared Component) -->
+<script>
+        // Simple micro-interaction for validation button
+        document.querySelector('button:contains("Validar")').addEventListener('click', function() {
+            const dniInput = document.getElementById('dni');
+            if(dniInput.value.length >= 8) {
+                this.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">sync</span>';
+                setTimeout(() => {
+                    this.textContent = 'Validado';
+                    this.classList.replace('bg-surface-container', 'bg-status-aprobado-bg');
+                    this.classList.replace('text-primary', 'text-status-aprobado-text');
+                    document.getElementById('nombres').value = 'JUAN PEREZ GARCIA';
+                    document.getElementById('nombres').classList.replace('text-on-secondary-fixed-variant', 'text-on-surface');
+                }, 800);
+            }
+        });
+    </script>
+</body></html>

@@ -24,7 +24,7 @@ function calcularMorosidad(fechaAlta: Date, pagadas: Set<string>): { moroso: boo
   return {
     moroso: mesesPendientes.length > 0,
     mesesPendientes,
-    deudaTotal: mesesPendientes.length * 20,
+    deudaTotal: mesesPendientes.length * 1,
   };
 }
 

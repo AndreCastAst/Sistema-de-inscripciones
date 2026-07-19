@@ -1,0 +1,314 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Pagos - CIP - Sistema de Inscripciones</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#6c5200",
+                    "surface-bright": "#f7f9fb",
+                    "on-secondary-container": "#656464",
+                    "status-observado-bg": "#FFEDD5",
+                    "on-primary-container": "#ffbab4",
+                    "surface-dim": "#d8dadc",
+                    "status-aprobado-text": "#047857",
+                    "primary-fixed-dim": "#ffb3ad",
+                    "inverse-primary": "#ffb3ad",
+                    "status-observado-text": "#C2410C",
+                    "surface": "#f7f9fb",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-tertiary-container": "#f3c54f",
+                    "on-error": "#ffffff",
+                    "primary-container": "#a81b1f",
+                    "inverse-on-surface": "#eff1f3",
+                    "watermark-red": "#EF4444",
+                    "surface-tint": "#b52527",
+                    "tertiary-fixed-dim": "#eec14b",
+                    "primary-fixed": "#ffdad6",
+                    "surface-container-low": "#f2f4f6",
+                    "secondary-fixed": "#e5e2e1",
+                    "secondary": "#5f5e5e",
+                    "on-secondary-fixed": "#1c1b1b",
+                    "tertiary": "#503c00",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#e6e8ea",
+                    "background": "#f7f9fb",
+                    "on-secondary": "#ffffff",
+                    "status-pendiente-text": "#B45309",
+                    "status-pendiente-bg": "#FEF3C7",
+                    "status-aprobado-bg": "#D1FAE5",
+                    "surface-variant": "#e0e3e5",
+                    "inverse-surface": "#2d3133",
+                    "on-background": "#191c1e",
+                    "on-surface-variant": "#5a403e",
+                    "on-surface": "#191c1e",
+                    "on-primary-fixed-variant": "#920412",
+                    "status-rechazado-bg": "#FEE2E2",
+                    "outline-variant": "#e2bebb",
+                    "on-primary-fixed": "#410003",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "status-rechazado-text": "#B91C1C",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#eceef0",
+                    "primary": "#83000e",
+                    "outline": "#8e706d",
+                    "on-tertiary-fixed-variant": "#5a4300",
+                    "on-secondary-fixed-variant": "#474646",
+                    "tertiary-fixed": "#ffdf98",
+                    "secondary-container": "#e5e2e1",
+                    "on-tertiary-fixed": "#251a00",
+                    "on-tertiary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "md": "16px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "container-max-admin": "1152px",
+                    "container-max-form": "672px",
+                    "xs": "4px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": [
+                            "Inter"
+                    ],
+                    "display-lg": [
+                            "Inter"
+                    ],
+                    "body-bold": [
+                            "Inter"
+                    ],
+                    "body-medium": [
+                            "Inter"
+                    ],
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "body-base": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "display-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-bold": [
+                            "15px",
+                            {
+                                    "lineHeight": "22px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-medium": [
+                            "15px",
+                            {
+                                    "lineHeight": "22px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "label-sm": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "letterSpacing": "0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-base": [
+                            "15px",
+                            {
+                                    "lineHeight": "22px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex flex-col font-body-base text-body-base text-on-background">
+<!-- TopNavBar Component -->
+<header class="bg-surface dark:bg-inverse-surface border-b border-outline-variant w-full z-50">
+<div class="flex justify-between items-center px-lg py-md w-full max-w-container-admin mx-auto">
+<div class="font-display-lg text-display-lg text-primary dark:text-primary-fixed uppercase tracking-tight"><img alt="Logo CIP" class="h-12 w-auto inline-block align-middle mr-md" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrSMD1LxFlAH9juGE5WIg3B7ItvzgScIPOG-55ONQFmRdzxSINwRxWoWE1EU2D_SxOZVm-juCNuKzMc2Gu7xkYWkDPXxiUPdfqR_X1cyBAkMjLf1d8J7mm-CEdtxEMIDqn3uT7jacxBR-SIjIA0NcquqvqCKMSEkWROrba-fmAjo-AA0v1h-i-2khrTyZ0-qZLtLyhA58EERZYZhWGGoel0REmrCxwNzBhm_oBd0LWjZ6KOOnzFa78uWEiipTT5S20ve33dcwwnno">
+                CIP - Sistema de Inscripciones
+            </div>
+<nav class="hidden md:flex gap-md items-center">
+<a class="text-on-surface-variant dark:text-surface-variant font-body-base hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors cursor-pointer active:opacity-80 pb-sm" href="#">Portal Público</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-body-base hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors cursor-pointer active:opacity-80 pb-sm" href="#">Consulta de Carnet</a>
+<a class="text-primary dark:text-primary-fixed font-body-bold border-b-2 border-primary hover:text-primary-container dark:hover:text-primary-fixed-dim transition-colors cursor-pointer active:opacity-80 pb-sm" href="#">Pagos</a>
+</nav>
+<button class="hidden md:flex items-center justify-center bg-primary text-on-primary font-body-bold text-body-bold px-lg py-sm rounded-lg hover:bg-primary-container transition-colors shadow-sm">
+                Acceso Administrativo
+            </button>
+<!-- Mobile Menu Button -->
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</header>
+<main class="flex-grow w-full max-w-container-admin mx-auto px-md md:px-lg py-xl flex flex-col">
+<!-- Optional Breadcrumb / Sidebar Context -->
+<div class="flex-grow max-w-4xl mx-auto w-full flex flex-col gap-xl">
+<!-- Page Header -->
+<div>
+<h1 class="font-display-lg text-display-lg text-on-surface mb-sm">Consulta y Pago de Cuotas</h1>
+<p class="text-on-surface-variant font-body-base">Ingrese su número de DNI o código CIP para consultar sus cuotas ordinarias pendientes.</p>
+</div>
+<!-- Search Section -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<form class="flex flex-col md:flex-row gap-md items-end">
+<div class="flex-grow w-full">
+<label class="block font-body-medium text-body-medium text-on-surface mb-xs" for="search_input">Documento de Identidad o Código CIP</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-secondary">search</span>
+<input class="w-full pl-xl pr-sm py-sm border border-outline-variant rounded-lg bg-surface focus:ring-2 focus:ring-primary focus:border-primary text-on-surface transition-all" id="search_input" placeholder="Ej. 12345678 o 000000" type="text">
+</div>
+</div>
+<button class="w-full md:w-auto bg-primary text-on-primary font-body-bold px-lg py-sm h-[42px] rounded-lg hover:bg-primary-container transition-colors flex items-center justify-center gap-sm shadow-sm" type="button">
+                        Buscar
+                    </button>
+</form>
+</div>
+<!-- Debt Summary Section (Visible after search - simulating state) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<div class="bg-surface-container-low px-lg py-md border-b border-outline-variant flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface">Estado de Cuenta</h2>
+<span class="bg-status-pendiente-bg text-status-pendiente-text px-sm py-xs rounded-full font-label-sm text-label-sm font-bold flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">warning</span> Pendiente
+                    </span>
+</div>
+<div class="p-lg">
+<!-- Member Info -->
+<div class="flex items-center gap-md mb-lg p-md bg-surface-bright rounded-lg border border-surface-dim">
+<div class="w-12 h-12 bg-surface-container flex items-center justify-center rounded-full text-primary">
+<span class="material-symbols-outlined text-[24px]">person</span>
+</div>
+<div>
+<div class="font-body-bold text-body-bold text-on-surface">Ing. JORGE EUGENIO ARENAS ABANTO</div>
+<div class="text-on-surface-variant font-label-sm">CIP: 31333 | Ing. CIVIL</div>
+</div>
+</div>
+<!-- Table -->
+<div class="overflow-x-auto rounded-lg border border-outline-variant mb-lg">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="px-md py-sm font-body-bold text-body-bold text-on-surface">Concepto</th>
+<th class="px-md py-sm font-body-bold text-body-bold text-on-surface">Periodo</th>
+<th class="px-md py-sm font-body-bold text-body-bold text-on-surface text-right">Monto</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-bright transition-colors">
+<td class="px-md py-sm text-on-surface font-body-base">Cuota Ordinaria</td>
+<td class="px-md py-sm text-on-surface-variant font-body-base">Mayo 2024</td>
+<td class="px-md py-sm text-on-surface font-body-bold text-right">S/ 20.00</td>
+</tr>
+<tr class="hover:bg-surface-bright transition-colors">
+<td class="px-md py-sm text-on-surface font-body-base">Cuota Ordinaria</td>
+<td class="px-md py-sm text-on-surface-variant font-body-base">Junio 2024</td>
+<td class="px-md py-sm text-on-surface font-body-bold text-right">S/ 20.00</td>
+</tr>
+</tbody>
+<tfoot class="bg-surface-container-low border-t-2 border-outline-variant">
+<tr>
+<td class="px-md py-sm font-body-bold text-body-bold text-on-surface text-right" colspan="2">Total a Pagar:</td>
+<td class="px-md py-sm font-headline-md text-headline-md text-primary text-right">S/ 40.00</td>
+</tr>
+</tfoot>
+</table>
+</div>
+<!-- Payment Methods -->
+<h3 class="font-body-bold text-body-bold text-on-surface mb-md">Método de Pago</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md mb-lg">
+<!-- Option 1: Online Payment -->
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="payment_method" type="radio" value="online">
+<div class="h-full border-2 border-outline-variant rounded-xl p-md flex flex-col items-center justify-center text-center hover:border-primary-container peer-checked:border-primary peer-checked:bg-error-container/20 transition-all">
+<span class="material-symbols-outlined text-[32px] text-primary mb-sm">credit_card</span>
+<div class="font-body-bold text-body-bold text-on-surface">Pagar en Línea</div>
+<div class="text-label-sm text-on-surface-variant mt-xs">Tarjeta de crédito o débito (Culqi)</div>
+</div>
+</label>
+<!-- Option 2: Upload Voucher -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="payment_method" type="radio" value="voucher">
+<div class="h-full border-2 border-outline-variant rounded-xl p-md flex flex-col items-center justify-center text-center hover:border-primary-container peer-checked:border-primary peer-checked:bg-error-container/20 transition-all">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-sm">upload_file</span>
+<div class="font-body-bold text-body-bold text-on-surface">Subir Voucher</div>
+<div class="text-label-sm text-on-surface-variant mt-xs">Transferencia bancaria o depósito</div>
+</div>
+</label>
+</div>
+<!-- Dynamic Area based on selection (simulating Online selected) -->
+<div class="bg-surface-bright p-md border border-outline-variant rounded-lg mb-lg">
+<div class="text-sm text-on-surface-variant mb-md flex items-start gap-sm">
+<span class="material-symbols-outlined text-[20px] text-primary">info</span>
+                            //Será redirigido a la pasarela de pagos segura. El cargo se realizará por el monto total mostrado.
+                        </div>
+</div>
+<!-- Action -->
+<div class="flex justify-end pt-md border-t border-outline-variant">
+<button class="bg-primary text-on-primary font-body-bold px-xl py-sm rounded-lg hover:bg-primary-container transition-colors flex items-center justify-center gap-sm shadow-md text-lg" type="button">
+                           // Procesar Pago S/ 40.00 <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Component -->
+
+
+</body></html>

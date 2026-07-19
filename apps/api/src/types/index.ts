@@ -64,7 +64,7 @@ export interface Mensualidad {
   id: number;
   colegiadoId: number;
   periodo: string;       // formato YYYY-MM
-  monto: number;         // S/20 por defecto
+  monto: number;         // S/1 por defecto
   pagadoEn: Date | null; // null = pendiente de pago
 }
 

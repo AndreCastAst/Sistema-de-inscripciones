@@ -14,6 +14,7 @@ model Region {
   colegiados    Colegiado[]
   revisores     Revisor[]
   secuencias    Secuencia[]
+  usuarios      Usuario[]
 }
 
 model Carrera {
@@ -79,7 +80,7 @@ model Mensualidad {
   id          Int         @id @default(autoincrement())
   colegiadoId Int
   periodo     String      // YYYY-MM
-  monto       Float       @default(20)
+  monto       Float       @default(1)
   pagadoEn    DateTime?
   metodoPago  MetodoPago?
   voucherUrl  String?
@@ -124,6 +125,8 @@ model Usuario {
   passwordHash String
   nombre       String
   rol          String   @default("admin")
+  regionId     Int?
+  region       Region?  @relation(fields: [regionId], references: [id])
   creadoEn     DateTime @default(now())
 }
 

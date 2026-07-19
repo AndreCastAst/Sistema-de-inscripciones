@@ -4,9 +4,35 @@ import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { consultarDNI } from "../services/reniec";
 import { firmarUrl } from "../services/cloudinary";
+import { enviarConfirmacionInscripcion } from "../services/email";
+import { generarBoletaPDF } from "../services/pdf";
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// GET /api/v1/postulantes/buscar/:dni — consulta pública de expediente activo por DNI
+router.get("/buscar/:dni", async (req, res, next) => {
+  try {
+    const postulacion = await prisma.postulacion.findFirst({
+      where: {
+        dni: req.params.dni,
+        estado: { in: ["PENDIENTE", "OBSERVADO", "SUBSANADO"] },
+      },
+      include: {
+        region: true,
+        carrera: true,
+        observaciones: { orderBy: { creadoEn: "desc" }, take: 10 },
+      },
+      orderBy: { creadoEn: "desc" },
+    });
+    if (!postulacion) {
+      return res.status(404).json({ error: "No se encontró expediente activo para ese DNI" });
+    }
+    res.json(postulacion);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/v1/postulantes/dni/:dni — validación RENIEC
 router.get("/dni/:dni", async (req, res, next) => {
@@ -33,7 +59,7 @@ const postulacionSchema = z.object({
   carreraId: z.number().int().positive().optional(),
   fotoUrl: z.string().url().optional(),
   tituloUrl: z.string().url().optional(),
-  voucherUrl: z.string().url().optional(),
+  voucherUrl: z.string().optional(),
   esFisico: z.boolean().optional().default(false),
 });
 
@@ -64,6 +90,44 @@ router.post("/", validate(postulacionSchema), async (req, res, next) => {
         detalle: `DNI: ${postulacion.dni}`,
       },
     });
+
+    // Enviar confirmación por email con PDF adjunto (no-blocking)
+    (async () => {
+      try {
+        let pdfBuffer: Buffer | undefined;
+        const vu = postulacion.voucherUrl;
+        if (vu?.startsWith("SIM-")) {
+          const parts = vu.split("-");
+          if (parts.length >= 4) {
+            const banco = parts[1];
+            const numOp = `${parts[1]}-${parts[2]}`;
+            const codigoVoucher = parts[3];
+            pdfBuffer = await generarBoletaPDF({
+              nombreCompleto: `${postulacion.apellidoPaterno} ${postulacion.apellidoMaterno}, ${postulacion.nombres}`,
+              dni: postulacion.dni,
+              monto: 3,
+              banco,
+              numOp,
+              codigoVoucher,
+              numeroBoleta: String(Math.floor(1000000 + Math.random() * 9000000)).padStart(8, "0"),
+              fecha: new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" }),
+              hora: new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }),
+            });
+          }
+        }
+        await enviarConfirmacionInscripcion(postulacion.gmail, {
+          postulacionId: postulacion.id,
+          nombres: postulacion.nombres,
+          apellidoPaterno: postulacion.apellidoPaterno,
+          apellidoMaterno: postulacion.apellidoMaterno,
+          dni: postulacion.dni,
+          voucherUrl: postulacion.voucherUrl ?? undefined,
+          pdfBuffer,
+        });
+      } catch (err: any) {
+        console.error(`[Email] Error al enviar confirmación a ${postulacion.gmail}:`, err?.message ?? err);
+      }
+    })();
 
     res.status(201).json(postulacion);
   } catch (err) {

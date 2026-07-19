@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/Spinner";
 import { getExpedientes, type PostulacionBandejaItem } from "@/lib/api";
+import { getRegionNombre } from "@/lib/auth";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -64,12 +65,15 @@ export default function RevisorPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [estado, setEstado] = useState("");
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
   const [cargando, setCargando] = useState(true);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const result = await getExpedientes({ search, page });
+      const result = await getExpedientes({ search, page, estado, fechaDesde, fechaHasta });
       setExpedientes(result.data);
       setTotal(result.total);
       setTotalPages(result.totalPages);
@@ -80,7 +84,7 @@ export default function RevisorPage() {
     } finally {
       setCargando(false);
     }
-  }, [search, page]);
+  }, [search, page, estado, fechaDesde, fechaHasta]);
 
   useEffect(() => {
     cargar();
@@ -91,6 +95,26 @@ export default function RevisorPage() {
     setSearch(searchInput);
     setPage(1);
   }
+
+  const hayFiltros = estado !== "" || fechaDesde !== "" || fechaHasta !== "" || search !== "";
+
+  function limpiarFiltros() {
+    setEstado("");
+    setFechaDesde("");
+    setFechaHasta("");
+    setSearch("");
+    setSearchInput("");
+    setPage(1);
+  }
+
+  const ESTADOS: { value: string; label: string }[] = [
+    { value: "PENDIENTE", label: "Nuevo" },
+    { value: "EN_REVISION", label: "En Revisión" },
+    { value: "OBSERVADO", label: "Observado" },
+    { value: "SUBSANADO", label: "Corregido" },
+    { value: "APROBADO", label: "Admitido" },
+    { value: "RECHAZADO", label: "Rechazado" },
+  ];
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
@@ -104,7 +128,7 @@ export default function RevisorPage() {
               location_on
             </span>
             <span className="text-[13px] text-on-surface-variant">Sede:</span>
-            <span className="text-[13px] font-semibold text-on-surface">Lima</span>
+            <span className="text-[13px] font-semibold text-on-surface">{getRegionNombre()}</span>
           </div>
         </div>
         <form onSubmit={handleSearch}>
@@ -121,6 +145,53 @@ export default function RevisorPage() {
           </div>
         </form>
       </header>
+
+      {/* Barra de filtros */}
+      <div className="bg-surface-container-lowest border-b border-outline-variant px-lg py-sm flex flex-wrap items-end gap-md shrink-0">
+        <div className="flex flex-col gap-xs">
+          <label className="text-[12px] font-medium text-on-surface-variant">Estado</label>
+          <select
+            value={estado}
+            onChange={(e) => { setEstado(e.target.value); setPage(1); }}
+            className="py-2 px-md bg-surface-container-low border border-outline-variant rounded-lg text-[15px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+          >
+            <option value="">Todos los estados</option>
+            {ESTADOS.map((e) => (
+              <option key={e.value} value={e.value}>{e.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-xs">
+          <label className="text-[12px] font-medium text-on-surface-variant">Desde</label>
+          <input
+            type="date"
+            value={fechaDesde}
+            max={fechaHasta || undefined}
+            onChange={(e) => { setFechaDesde(e.target.value); setPage(1); }}
+            className="py-2 px-md bg-surface-container-low border border-outline-variant rounded-lg text-[15px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+          />
+        </div>
+        <div className="flex flex-col gap-xs">
+          <label className="text-[12px] font-medium text-on-surface-variant">Hasta</label>
+          <input
+            type="date"
+            value={fechaHasta}
+            min={fechaDesde || undefined}
+            onChange={(e) => { setFechaHasta(e.target.value); setPage(1); }}
+            className="py-2 px-md bg-surface-container-low border border-outline-variant rounded-lg text-[15px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+          />
+        </div>
+        {hayFiltros && (
+          <button
+            type="button"
+            onClick={limpiarFiltros}
+            className="py-2 px-md text-[15px] font-medium text-on-surface-variant hover:text-primary flex items-center gap-xs transition-colors"
+          >
+            <span className="material-symbols-outlined text-lg">close</span>
+            Limpiar filtros
+          </button>
+        )}
+      </div>
 
       {/* Tabla */}
       <div className="flex-1 overflow-y-auto p-lg">

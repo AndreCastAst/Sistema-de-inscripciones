@@ -2,12 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { getNombre, logout } from "@/lib/auth";
+import { getNombre, getRol, getRegionNombre, logout } from "@/lib/auth";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const nombre = getNombre() ?? "Administrador";
+  const rol = getRol();
+  const regionNombre = getRegionNombre();
+  const esCajero = rol === "cajero";
+  const iniciales = nombre
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((palabra) => palabra.charAt(0).toUpperCase())
+    .join("");
 
   function handleLogout() {
     logout();
@@ -45,20 +54,22 @@ export function AdminSidebar() {
       <div className="px-lg pb-md mb-sm border-b border-outline-variant">
         <div className="flex items-center gap-md">
           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-outline-variant shrink-0">
-            <span className="text-on-primary font-bold text-sm">RA</span>
+            <span className="text-on-primary font-bold text-sm">{iniciales || "AD"}</span>
           </div>
           <div>
             <h2 className="text-[15px] font-semibold text-primary">{nombre}</h2>
-            <p className="text-[13px] text-on-surface-variant">Panel Administrativo</p>
+            <p className="text-[13px] text-on-surface-variant">
+              {esCajero ? "Cajero" : "Administrador"} · {regionNombre}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Navegación */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-unit px-sm">
-        {navItem("/revisor", "folder_shared", "Bandeja de Expedientes")}
-        {navItem("/revisor/auditoria", "fact_check", "Auditoría Documental")}
-        {navItem("/revisor/ventanilla", "point_of_sale", "Módulo de Ventanilla")}
+        {!esCajero && navItem("/revisor", "folder_shared", "Bandeja de Expedientes")}
+        {!esCajero && navItem("/revisor/auditoria", "fact_check", "Auditoría Documental")}
+        {esCajero && navItem("/revisor/ventanilla", "point_of_sale", "Módulo de Ventanilla")}
       </div>
 
       {/* Footer */}

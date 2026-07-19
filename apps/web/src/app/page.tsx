@@ -8,6 +8,7 @@ import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
 import { consultarDNI, crearPostulacion, getRegiones } from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
+import { SimuladorPago, type DatosPago } from "@/components/pagos/SimuladorPago";
 import type { Region } from "@/types";
 
 const schema = z.object({
@@ -105,7 +106,6 @@ function ZonaCarga({ archivo, onClick, icono, titulo, descripcion, mensajeCarga 
 // ── Página principal ─────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [regiones, setRegiones] = useState<Region[]>([]);
   const [dniVerificado, setDniVerificado] = useState(false);
   const [buscandoDNI, setBuscandoDNI] = useState(false);
   const [errorDNI, setErrorDNI] = useState<string | null>(null);
@@ -114,9 +114,14 @@ export default function HomePage() {
   const [titulo, setTitulo] = useState<ArchivoState>(archivoInicial);
   const [voucher, setVoucher] = useState<ArchivoState>(archivoInicial);
   const [metodoPago, setMetodoPago] = useState<"integrated" | "voucher">("integrated");
+  const [mostrarSimulador, setMostrarSimulador] = useState(false);
+  const [pagoIntegradoRef, setPagoIntegradoRef] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [expedienteId, setExpedienteId] = useState<number | null>(null);
+  const [correoEnviado, setCorreoEnviado] = useState<string | null>(null);
+  const [voucherPagoRef, setVoucherPagoRef] = useState<string | null>(null);
+  const [regiones, setRegiones] = useState<Region[]>([]);
 
   const fotoRef = useRef<HTMLInputElement>(null);
   const tituloRef = useRef<HTMLInputElement>(null);
@@ -131,18 +136,11 @@ export default function HomePage() {
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  // Cargar el listado de sedes para que el postulante elija la suya
   useEffect(() => {
     getRegiones()
-      .then(setRegiones)
-      .catch(() => {
-        setRegiones([
-          { id: 1, nombre: "Lima" },
-          { id: 2, nombre: "Arequipa" },
-          { id: 3, nombre: "Cusco" },
-          { id: 4, nombre: "La Libertad" },
-          { id: 5, nombre: "Piura" },
-        ]);
-      });
+      .then((data) => setRegiones([...data].sort((a, b) => a.nombre.localeCompare(b.nombre))))
+      .catch(() => setRegiones([]));
   }, []);
 
   async function validarDNI() {
@@ -233,7 +231,10 @@ export default function HomePage() {
     dniVerificado &&
     foto.estado === "listo" &&
     titulo.estado === "listo" &&
-    (metodoPago === "integrated" || voucher.estado === "listo");
+    (
+      (metodoPago === "integrated" && pagoIntegradoRef !== null) ||
+      (metodoPago === "voucher" && voucher.estado === "listo")
+    );
 
   async function onSubmit(data: FormData) {
     if (!foto.url || !titulo.url) return;
@@ -242,14 +243,17 @@ export default function HomePage() {
     setEnviando(true);
     setErrorEnvio(null);
     try {
+      const voucherFinal = metodoPago === "integrated" ? (pagoIntegradoRef ?? undefined) : (voucher.url ?? undefined);
       const result = await crearPostulacion({
         ...data,
         regionId: Number(data.regionId),
         fotoUrl: foto.url,
         tituloUrl: titulo.url,
-        voucherUrl: voucher.url ?? undefined,
+        voucherUrl: voucherFinal,
       });
       setExpedienteId(result.id);
+      setCorreoEnviado(data.gmail);
+      setVoucherPagoRef(voucherFinal ?? null);
     } catch {
       setErrorEnvio("Ocurrió un error al enviar la solicitud. Intenta de nuevo.");
     } finally {
@@ -266,41 +270,143 @@ export default function HomePage() {
     setTitulo(archivoInicial);
     setVoucher(archivoInicial);
     setMetodoPago("integrated");
+    setPagoIntegradoRef(null);
+    setMostrarSimulador(false);
     setErrorEnvio(null);
     setExpedienteId(null);
+    setCorreoEnviado(null);
+    setVoucherPagoRef(null);
   }
 
   // ── Estado de éxito ───────────────────────────────────────────────────────
 
   if (expedienteId !== null) {
+    const esPasarela = voucherPagoRef?.startsWith("SIM-");
+    const fechaActual = new Date().toLocaleDateString("es-PE", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+    const horaActual = new Date().toLocaleTimeString("es-PE", {
+      hour: "2-digit", minute: "2-digit",
+    });
+
     return (
       <>
         <NavBar activeTab="portal" />
         <main className="flex-grow py-xl px-md md:px-lg">
-          <div className="max-w-container-max-form mx-auto bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
-            <div className="p-xl text-center space-y-md">
-              <div className="w-16 h-16 bg-status-aprobado-bg rounded-full flex items-center justify-center mx-auto">
-                <span
-                  className="material-symbols-outlined text-status-aprobado-text"
-                  style={{ fontSize: "36px", fontVariationSettings: "'FILL' 1" }}
-                >
-                  check_circle
-                </span>
+          <div className="max-w-container-max-form mx-auto space-y-md">
+
+            {/* Banner de éxito */}
+            <div className="bg-status-aprobado-bg border border-status-aprobado-text/30 rounded-xl p-lg flex items-center gap-md">
+              <span
+                className="material-symbols-outlined text-status-aprobado-text shrink-0"
+                style={{ fontSize: "48px", fontVariationSettings: "'FILL' 1" }}
+              >
+                check_circle
+              </span>
+              <div>
+                <h2 className="text-[20px] font-bold text-on-surface">¡Solicitud enviada con éxito!</h2>
+                <p className="text-[14px] text-on-surface-variant mt-xs">
+                  Tu expediente fue recibido y se encuentra en espera de revisión.
+                </p>
               </div>
-              <h2 className="text-[20px] font-semibold text-on-surface">
-                ¡Solicitud enviada con éxito!
-              </h2>
-              <p className="text-[15px] text-on-surface-variant max-w-sm mx-auto">
-                Tu expediente ha sido recibido. Un revisor de tu región lo evaluará y recibirás
-                una notificación por correo electrónico.
-              </p>
+            </div>
+
+            {/* Comprobante — solo para pago por pasarela integrada */}
+            {esPasarela ? (
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-surface-container-low px-lg py-md border-b border-outline-variant text-center">
+                  <p className="text-[13px] font-bold text-on-surface tracking-wider uppercase">
+                    Comprobante de Solicitud de Inscripción
+                  </p>
+                  <p className="text-[12px] text-on-surface-variant mt-xs">
+                    Colegio de Ingenieros del Perú · RUC: 20100149286
+                  </p>
+                </div>
+                <div className="p-lg space-y-sm text-[14px]">
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="text-on-surface-variant">Fecha y hora</span>
+                    <span className="font-medium text-on-surface">{fechaActual} {horaActual}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="text-on-surface-variant">Concepto</span>
+                    <span className="font-medium text-on-surface">Derecho de Inscripción – CIP</span>
+                  </div>
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="text-on-surface-variant">Monto pagado</span>
+                    <span className="font-bold text-[17px] text-primary">S/ 3.00</span>
+                  </div>
+                  <div className="flex justify-between border-b border-outline-variant pb-sm">
+                    <span className="text-on-surface-variant">Método de pago</span>
+                    <span className="font-medium text-on-surface">Pasarela integrada</span>
+                  </div>
+                  {voucherPagoRef && (
+                    <div className="flex justify-between border-b border-outline-variant pb-sm">
+                      <span className="text-on-surface-variant">Referencia de pago</span>
+                      <span className="font-mono text-[13px] text-on-surface">{voucherPagoRef}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pb-sm">
+                    <span className="text-on-surface-variant">Estado</span>
+                    <span className="font-semibold text-status-pendiente-text">⏳ Pendiente de revisión</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Voucher externo — el pago será verificado manualmente */
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex items-start gap-md">
+                <span className="material-symbols-outlined text-status-pendiente-text shrink-0 mt-xs" style={{ fontSize: "32px" }}>
+                  hourglass_top
+                </span>
+                <div>
+                  <p className="text-[15px] font-semibold text-on-surface">Comprobante en verificación</p>
+                  <p className="text-[14px] text-on-surface-variant mt-xs">
+                    Tu voucher bancario fue recibido. El revisor lo validará en las próximas{" "}
+                    <strong className="text-on-surface">24–48 horas hábiles</strong> y te notificará por correo.
+                  </p>
+                  <div className="mt-md flex items-center gap-sm text-[13px] text-on-surface-variant">
+                    <span className="material-symbols-outlined text-base">info</span>
+                    Fecha de envío: {fechaActual} {horaActual}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Aviso de correo enviado */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-md flex items-start gap-sm">
+              <span className="material-symbols-outlined text-primary text-2xl shrink-0 mt-xs">
+                mark_email_read
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold text-on-surface">
+                  Correo de confirmación enviado
+                </p>
+                <p className="text-[13px] text-on-surface-variant mt-xs">
+                  Se envió un comprobante con los detalles de tu solicitud a{" "}
+                  <strong className="text-primary">{correoEnviado}</strong>.
+                  Revisa también tu carpeta de spam si no lo encuentras en unos minutos.
+                </p>
+              </div>
+            </div>
+
+            {/* Qué sigue */}
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md">
+              <p className="text-[14px] font-semibold text-on-surface mb-sm">¿Qué sigue?</p>
+              <ol className="space-y-xs text-[13px] text-on-surface-variant list-decimal list-inside">
+                <li>Un revisor de tu región evaluará tu expediente.</li>
+                <li>Si hay observaciones, recibirás un correo indicando qué corregir.</li>
+                <li>Al ser aprobado recibirás tu código de colegiado por correo.</li>
+              </ol>
+            </div>
+
+            <div className="flex justify-center pt-sm">
               <a
                 href="/"
-                className="inline-block bg-primary text-on-primary text-[15px] font-semibold px-lg py-2.5 rounded-lg hover:brightness-110 transition-all shadow-sm"
+                className="bg-primary text-on-primary text-[15px] font-semibold px-xl py-sm rounded-lg hover:brightness-110 transition-all shadow-sm"
               >
-                Salir
+                Nueva solicitud
               </a>
             </div>
+
           </div>
         </main>
       </>
@@ -309,8 +415,29 @@ export default function HomePage() {
 
   // ── Formulario ────────────────────────────────────────────────────────────
 
+  const datosPago: DatosPago = {
+    tipo: "inscripcion",
+    monto: 3,
+    nombres: getValues("nombres") || "Postulante",
+    apellidoPaterno: getValues("apellidoPaterno") || "",
+    apellidoMaterno: getValues("apellidoMaterno") || "",
+  };
+
   return (
     <>
+      {/* Overlay del simulador de pasarela */}
+      {mostrarSimulador && (
+        <SimuladorPago
+          datos={datosPago}
+          onExito={(info) => {
+            const digits = info.numOp.split("-")[1] ?? Date.now().toString().slice(-8);
+            setPagoIntegradoRef(`SIM-${info.banco}-${digits}-${info.codigoVoucher}`);
+            setMostrarSimulador(false);
+          }}
+          onCancelar={() => setMostrarSimulador(false)}
+        />
+      )}
+
       <NavBar activeTab="portal" />
       <main className="flex-grow py-xl px-md md:px-lg">
         <div className="max-w-container-max-form mx-auto bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
@@ -458,54 +585,46 @@ export default function HomePage() {
                   Información de Contacto
                 </h3>
               </div>
-              <div className="flex flex-col gap-xs">
-                <label className="text-[13px] font-medium text-on-surface-variant">
-                  Correo Electrónico Principal
-                </label>
-                <input
-                  {...register("gmail")}
-                  type="email"
-                  placeholder="ejemplo@correo.com"
-                  className="text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                />
-                {errors.gmail && (
-                  <p className="text-error text-[13px]">{errors.gmail.message}</p>
-                )}
-                <p className="text-[13px] text-on-surface-variant/70 mt-xs">
-                  Este correo será utilizado para todas las notificaciones oficiales.
-                </p>
-              </div>
-            </section>
-
-            {/* ── Sección: Datos Académicos ──────────────────────────────── */}
-            <section>
-              <div className="flex items-center gap-sm mb-md border-b border-surface-variant pb-sm">
-                <span
-                  className="material-symbols-outlined text-primary"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  school
-                </span>
-                <h3 className="text-[15px] font-semibold text-on-surface">Datos Académicos</h3>
-              </div>
-              <div className="flex flex-col gap-xs">
-                <label className="text-[13px] font-medium text-on-surface-variant">
-                  Región / Consejo Departamental
-                </label>
-                <select
-                  {...register("regionId")}
-                  className="text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                >
-                  <option value="">Selecciona una región</option>
-                  {regiones.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nombre}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div className="flex flex-col gap-xs md:col-span-2">
+                  <label className="text-[13px] font-medium text-on-surface-variant">
+                    Correo Electrónico Principal
+                  </label>
+                  <input
+                    {...register("gmail")}
+                    type="email"
+                    placeholder="ejemplo@correo.com"
+                    className="text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  />
+                  {errors.gmail && (
+                    <p className="text-error text-[13px]">{errors.gmail.message}</p>
+                  )}
+                  <p className="text-[13px] text-on-surface-variant/70 mt-xs">
+                    Este correo será utilizado para todas las notificaciones oficiales.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-xs md:col-span-2">
+                  <label className="text-[13px] font-medium text-on-surface-variant">
+                    Sede / Consejo Departamental
+                  </label>
+                  <select
+                    {...register("regionId")}
+                    defaultValue=""
+                    className="text-[15px] bg-surface-container-lowest border border-outline-variant rounded px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  >
+                    <option value="" disabled>
+                      Selecciona tu sede...
                     </option>
-                  ))}
-                </select>
-                {errors.regionId && (
-                  <p className="text-error text-[13px]">{errors.regionId.message}</p>
-                )}
+                    {regiones.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.regionId && (
+                    <p className="text-error text-[13px]">{errors.regionId.message}</p>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -582,10 +701,10 @@ export default function HomePage() {
                     className="text-primary focus:ring-primary h-4 w-4 border-outline-variant"
                   />
                   <span className="text-[15px] font-medium text-on-surface flex-grow">
-                    Pasarela Integrada (Tarjeta Crédito/Débito)
+                    Pasarela Integrada — Yape, Plin, BCP, BBVA, Interbank y más
                   </span>
                   <span className="material-symbols-outlined text-on-surface-variant text-lg">
-                    credit_card
+                    account_balance
                   </span>
                 </label>
                 <label className="flex items-center gap-sm p-sm rounded-lg border cursor-pointer transition-colors bg-surface-bright has-[:checked]:bg-primary-fixed/20 has-[:checked]:border-primary border-outline-variant hover:bg-surface-container-low">
@@ -605,6 +724,46 @@ export default function HomePage() {
                   </span>
                 </label>
               </div>
+
+              {/* Pasarela integrada: botón para abrir simulador */}
+              {metodoPago === "integrated" && (
+                <div className="mt-md">
+                  {pagoIntegradoRef ? (
+                    <div className="flex items-center gap-sm p-md bg-status-aprobado-bg border border-status-aprobado-text/30 rounded-xl">
+                      <span
+                        className="material-symbols-outlined text-status-aprobado-text text-3xl shrink-0"
+                        style={{ fontVariationSettings: "'FILL' 1" }}
+                      >
+                        verified
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-[14px] font-semibold text-status-aprobado-text">
+                          Pago de S/ 3.00 completado
+                        </p>
+                        <p className="text-[12px] text-on-surface-variant mt-xs">
+                          Tu pago fue procesado correctamente con la pasarela.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMostrarSimulador(true)}
+                        className="text-[13px] text-on-surface-variant underline hover:text-on-surface shrink-0"
+                      >
+                        Cambiar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSimulador(true)}
+                      className="w-full flex items-center justify-center gap-sm p-md bg-primary text-on-primary rounded-xl hover:brightness-110 active:scale-95 transition-all font-semibold text-[15px] shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-xl">account_balance</span>
+                      Proceder al pago — S/ 3.00
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Zona de carga del voucher */}
               {metodoPago === "voucher" && (

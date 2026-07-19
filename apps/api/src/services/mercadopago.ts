@@ -18,9 +18,9 @@ export async function crearPreferenciaInscripcion(postulacionId: number, email: 
         {
           id: `inscripcion-${postulacionId}`,
           title: "Inscripción Colegio de Ingenieros del Perú",
-          description: "Pago único de inscripción S/1,500",
+          description: "Pago único de inscripción S/3",
           quantity: 1,
-          unit_price: 1500,
+          unit_price: 3,
           currency_id: "PEN",
         },
       ],
@@ -51,9 +51,9 @@ export async function crearPreferenciaMensualidad(colegiadoId: number, periodo: 
         {
           id: `mensualidad-${colegiadoId}-${periodo}`,
           title: `Mensualidad ${periodo} – Colegio de Ingenieros del Perú`,
-          description: "Cuota mensual S/20",
+          description: "Cuota mensual S/1",
           quantity: 1,
-          unit_price: 20,
+          unit_price: 1,
           currency_id: "PEN",
         },
       ],

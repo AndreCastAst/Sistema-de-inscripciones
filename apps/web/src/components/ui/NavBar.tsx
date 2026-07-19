@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 interface NavBarProps {
-  activeTab?: "portal" | "carnet" | "pagos";
+  activeTab?: "portal" | "carnet";
 }
 
 export function NavBar({ activeTab = "portal" }: NavBarProps) {
@@ -32,10 +32,7 @@ export function NavBar({ activeTab = "portal" }: NavBarProps) {
             Portal Público
           </Link>
           <Link href="/carnet" className={`${linkBase} ${activeTab === "carnet" ? linkActive : linkInactive}`}>
-            Consulta de Carnet
-          </Link>
-          <Link href="/pagos" className={`${linkBase} ${activeTab === "pagos" ? linkActive : linkInactive}`}>
-            Pagos
+            Consulta de Carnet y Pagos
           </Link>
         </nav>
 

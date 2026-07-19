@@ -25,6 +25,7 @@ export default function AuditoriaPage({ params }: Props) {
 
   // Panel de decisión
   const [carreraSeleccionada, setCarreraSeleccionada] = useState<string>("");
+  const [fechaAlta, setFechaAlta] = useState<string>("");
   const [observacion, setObservacion] = useState("");
   const [procesando, setProcesando] = useState(false);
   const [mensajeAccion, setMensajeAccion] = useState<{
@@ -67,7 +68,11 @@ export default function AuditoriaPage({ params }: Props) {
     setProcesando(true);
     setMensajeAccion(null);
     try {
-      const result = await aprobarPostulacion(id, Number(carreraSeleccionada));
+      const result = await aprobarPostulacion(
+        id,
+        Number(carreraSeleccionada),
+        fechaAlta || undefined
+      );
       setMensajeAccion({
         tipo: "exito",
         texto: `Expediente aprobado. Código CIP generado: ${result.codigoCIP}`,
@@ -445,6 +450,25 @@ export default function AuditoriaPage({ params }: Props) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Fecha de colegiatura (permite fechas pasadas para probar deudas) */}
+            <div className="mb-md">
+              <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">
+                Fecha de Colegiatura (Alta)
+              </label>
+              <input
+                type="date"
+                value={fechaAlta}
+                max={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setFechaAlta(e.target.value)}
+                disabled={yaDecidido}
+                className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors disabled:opacity-60"
+              />
+              <p className="text-[12px] text-on-surface-variant/70 mt-xs">
+                Déjalo vacío para usar la fecha de hoy. Una fecha pasada generará
+                mensualidades pendientes acumuladas.
+              </p>
             </div>
 
             {/* Observaciones */}

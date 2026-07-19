@@ -1,0 +1,268 @@
+<!DOCTYPE html><html class="light" lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CIP - Auditoría de Expediente</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "watermark-red": "#EF4444",
+                        "status-observado-text": "#C2410C",
+                        "outline": "#8e706d",
+                        "on-primary-fixed": "#410003",
+                        "secondary-container": "#e5e2e1",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#5a4300",
+                        "outline-variant": "#e2bebb",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#656464",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-container": "#eceef0",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#6c5200",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#ffdf98",
+                        "status-rechazado-bg": "#FEE2E2",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#a81b1f",
+                        "surface-tint": "#b52527",
+                        "on-surface": "#191c1e",
+                        "status-pendiente-text": "#B45309",
+                        "on-surface-variant": "#5a403e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#f3c54f",
+                        "status-observado-bg": "#FFEDD5",
+                        "on-primary-fixed-variant": "#920412",
+                        "status-pendiente-bg": "#FEF3C7",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-tertiary-fixed": "#251a00",
+                        "inverse-primary": "#ffb3ad",
+                        "status-aprobado-bg": "#D1FAE5",
+                        "primary-fixed": "#ffdad6",
+                        "status-rechazado-text": "#B91C1C",
+                        "tertiary-fixed-dim": "#eec14b",
+                        "on-primary-container": "#ffbab4",
+                        "secondary": "#5f5e5e",
+                        "background": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed-dim": "#ffb3ad",
+                        "surface-variant": "#e0e3e5",
+                        "status-aprobado-text": "#047857",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#83000e",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "tertiary": "#503c00",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "container-max-form": "672px",
+                        "container-max-admin": "1152px",
+                        "md": "16px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-base": ["Inter", "sans-serif"],
+                        "body-bold": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-medium": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-base": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "body-bold": ["15px", {"lineHeight": "22px", "fontWeight": "600"}],
+                        "label-sm": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-medium": ["15px", {"lineHeight": "22px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[style*="FILL' 1"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-base antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface-container dark:bg-inverse-surface border-r border-outline-variant h-screen w-64 fixed left-0 top-0 flex flex-col h-full gap-xs py-lg z-20 hidden md:flex">
+<div class="px-md mb-lg">
+<h1 class="font-display-lg text-display-lg text-primary">CIP</h1>
+</div>
+<div class="flex items-center gap-md px-md mb-xl">
+<img alt="Avatar Revisor Regional" class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a mature male executive in a corporate setting. The lighting is soft and natural, emphasizing a trustworthy and experienced demeanor. He is wearing a tailored grey suit with a crisp white shirt, aligning with a formal, serious institutional aesthetic. The background is slightly blurred, showing a modern office environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXEz4w-NhFGdX0JfOoFQumJ1_DUb2l3Cqt0SQuz-dedx_iczxvMR7S-Xb8C6OArLDfLbMLaZM_Y8_XaazrB2x8QufXKeY7EtVj0-nxU23fe8Up6lqFb7fUobEaCpZ4DPRHg4Nx8pwKRovIO6Q7p4XWIQ_4Dp5-He50Zf7KVysnZI6Oe9bPkcoNS587PXkeX7CmYxYqNsHLY6MfIMSLPrd7pLJFxs6c4SHA3eUl1_lEDM10jGgqP5wEtnFnTYdKWtgSzW5_IkrYVLw">
+<div>
+<p class="font-body-bold text-body-bold text-on-surface">Revisor Regional</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Consejo Departamental Lima</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<ul class="flex flex-col gap-xs">
+<li class="">
+<a class="text-on-surface-variant dark:text-surface-variant hover:bg-secondary-container mx-sm px-md py-sm rounded-lg flex items-center gap-md hover:bg-secondary-container dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined">folder_shared</span>
+<span class="font-body-medium text-body-medium">Bandeja de Expedientes</span>
+</a>
+</li>
+<li class="">
+<a class="bg-primary-container text-on-primary-container rounded-lg font-body-bold mx-sm px-md py-sm flex items-center gap-md hover:bg-secondary-container dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+<span class="">Auditoría Documental</span>
+</a>
+</li>
+<li class="">
+<a class="text-on-surface-variant dark:text-surface-variant hover:bg-secondary-container mx-sm px-md py-sm rounded-lg flex items-center gap-md hover:bg-secondary-container dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined">point_of_sale</span>
+<span class="font-body-medium text-body-medium">Módulo de Ventanilla</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="mt-auto pt-md border-t border-outline-variant mx-sm">
+<ul class="flex flex-col gap-xs">
+<li class="">
+</li>
+<li class="">
+<a class="text-on-surface-variant dark:text-surface-variant hover:bg-secondary-container px-md py-sm rounded-lg flex items-center gap-md hover:bg-secondary-container dark:hover:bg-secondary transition-all scale-95 active:scale-100 transition-transform" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-medium text-body-medium">Cerrar Sesión</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col md:ml-64 h-screen bg-background">
+<!-- Top App Bar (Mobile mainly, but provides context here too) -->
+<header class="bg-surface dark:bg-inverse-surface w-full flex justify-between items-center px-lg py-md border-b border-outline-variant shrink-0">
+<div class="flex items-center gap-md">
+<button class="md:hidden text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Auditoría de Expediente</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Exp. #EXP-2024-0892 • Ingresado 12/10/2024</p>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<span class="bg-status-pendiente-bg text-status-pendiente-text px-sm py-xs rounded-full font-label-sm text-label-sm border border-status-pendiente-text/20">En Revisión</span>
+</div>
+</header>
+<!-- Split View Container -->
+<div class="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-container-admin mx-auto w-full p-lg gap-lg">
+<!-- Left Pane: PDF Viewer & Identity -->
+<section class="flex-1 flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+<!-- Identity Header -->
+<div class="p-md border-b border-outline-variant bg-surface flex items-start gap-md shrink-0">
+<div class="w-[80px] h-[100px] bg-surface-container-high rounded shrink-0 overflow-hidden border border-outline-variant relative">
+<img alt="Foto Solicitante" class="w-full h-full object-cover" data-alt="A formal headshot of a female engineering professional against a plain white background. She is wearing a dark, professional blazer over a light blouse. The lighting is even and flat, typical of passport or official ID photos. Her expression is neutral and serious, fitting an institutional application requirement." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOkvNnVHwdDMcvTfM8iguHfkDWWt_iz56ntVKJGa8hCrimBkyRvUNlUXZEaWDi4eLCmn6FA57iSX1o-0Rr7bnlyNUak4C5KrWkTBjxZuyH73UfsiBumwF_ZteNOs4fPF_UWcy5rCnYdW2urb9ubT3_pMrqGxnFN1A-0OHCK4677PPp9AuJ8xgpLCDAXFKczEldZ_YDAx2qsaaPxxQ27RygxGgD8EzExcVRojnHtINSKf-ykbuHeLTDWHrfOK1l2yR64Dl07J6rxVI">
+<div class="absolute top-0 right-0 p-1 flex gap-1 bg-surface/80 rounded-bl-lg border-l border-b border-outline-variant"><button class="w-6 h-6 rounded flex items-center justify-center bg-status-aprobado-bg text-status-aprobado-text hover:scale-110 transition-transform" title="Correcto"><span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span></button><button class="w-6 h-6 rounded flex items-center justify-center bg-surface-container-high text-on-secondary-container hover:bg-status-observado-bg hover:text-status-observado-text hover:scale-110 transition-transform" title="Observar"><span class="material-symbols-outlined text-[16px]">warning</span></button></div></div>
+<div class="flex-1">
+<h3 class="font-body-bold text-body-bold text-on-surface uppercase mb-xs">MENDOZA RAMIREZ, CARMEN JULIA</h3>
+<div class="grid grid-cols-2 gap-sm">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">DNI</p>
+<p class="font-body-base text-body-base text-on-surface">45678912 <span class="material-symbols-outlined text-status-aprobado-text text-[16px] align-middle" title="Validado RENIEC">check_circle</span></p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Universidad</p>
+<p class="font-body-base text-body-base text-on-surface truncate" title="Universidad Nacional de Ingeniería">Universidad Nacional de Ingeniería</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Document Viewer Area -->
+<div class="flex-1 bg-surface-container-low flex flex-col relative">
+<!-- Fake PDF Toolbar -->
+<div class="h-10 bg-surface-container-highest border-b border-outline-variant flex items-center justify-between px-md shrink-0">
+<div class="flex gap-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Título_Profesional_SUNEDU.pdf</span>
+</div>
+<div class="flex gap-xs text-on-surface-variant"><div class="flex items-center gap-1 mr-md bg-surface-container-low p-0.5 rounded-lg border border-outline-variant"><button class="flex items-center gap-1 px-2 py-0.5 rounded bg-status-aprobado-bg text-status-aprobado-text font-label-sm"><span class="material-symbols-outlined text-[14px]">check_circle</span> Correcto</button><button class="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-status-observado-bg hover:text-status-observado-text text-on-secondary-container font-label-sm"><span class="material-symbols-outlined text-[14px]">warning</span> Observar</button></div>
+<button class="p-xs hover:bg-surface-variant rounded"><span class="material-symbols-outlined text-[18px]">zoom_out</span></button>
+<span class="font-label-sm text-label-sm px-xs py-xs">100%</span>
+<button class="p-xs hover:bg-surface-variant rounded"><span class="material-symbols-outlined text-[18px]">zoom_in</span></button>
+</div>
+</div>
+<!-- Fake PDF Content (Placeholder) -->
+<div class="flex-1 overflow-auto p-lg flex justify-center items-start">
+<!-- Simulated PDF Page -->
+<div class="w-full max-w-[600px] h-[800px] bg-white border border-outline-variant shadow-sm p-xl flex flex-col relative" data-alt="A simulated digital document resembling an official Peruvian university degree certificate (Título Profesional). It features ornate borders, an institutional crest at the top, and formal Spanish text declaring the conferral of an engineering degree. The layout is structured and highly official, using a stark black and white aesthetic with a faint watermark seal in the center.">
+<!-- This div acts as the visual placeholder for the PDF. In a real app, an iframe or pdf.js canvas goes here. -->
+<div class="w-full h-full border-2 border-dashed border-surface-container-highest flex items-center justify-center text-on-surface-variant/50">
+<div class="text-center">
+<span class="material-symbols-outlined text-[48px] mb-sm">description</span>
+<p class="font-body-medium text-body-medium">Visor de Documento</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Pane: Action Panel -->
+<aside class="w-full lg:w-[380px] shrink-0 flex flex-col gap-lg overflow-y-auto pb-lg">
+<!-- Decision Panel -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Panel de Decisión</h3>
+<!-- Assignment Form -->
+<div class="mb-lg">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs" for="carrera_cip">Asignar Capítulo / Especialidad CIP <span class="text-error">*</span></label>
+<select class="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm font-body-base text-body-base text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" id="carrera_cip">
+<option disabled="" selected="" value="">Seleccione del catálogo CIP...</option>
+<option value="civil">Ingeniería Civil</option>
+<option value="sistemas">Ingeniería de Sistemas e Informática</option>
+<option value="industrial">Ingeniería Industrial</option>
+<option value="electronica">Ingeniería Electrónica</option>
+<option value="mecanica">Ingeniería Mecánica</option>
+</select>
+</div>
+<!-- Observations -->
+<div class="mb-lg p-2 rounded-lg bg-status-observado-bg/30 border border-status-observado-text/20">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs" for="observaciones">Observaciones (Obligatorio para rechazo) <span class="text-error">*</span></label>
+<textarea class="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm font-body-base text-body-base text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none placeholder:text-on-surface-variant/50" id="observaciones" placeholder="Describa detalladamente las observaciones encontradas en los documentos. Este campo es obligatorio para proceder con la observación." rows="4"></textarea>
+</div>
+<!-- Actions -->
+<div class="flex flex-col gap-sm mt-xl pt-md border-t border-outline-variant"><div class="flex flex-col gap-sm"><p class="text-label-sm text-status-observado-text bg-status-observado-bg px-sm py-xs rounded flex items-center gap-xs mb-2"><span class="material-symbols-outlined text-[16px]">info</span> Se han detectado observaciones en el expediente.</p><button class="w-full bg-primary text-on-primary font-body-bold text-body-bold h-12 rounded-lg flex items-center justify-center gap-sm hover:bg-primary/90 transition-colors active:scale-[0.98]"><span class="material-symbols-outlined text-[20px]">send</span> Enviar Notificación de Observación</button><button class="w-full bg-transparent border border-outline text-on-surface font-body-bold text-body-bold h-12 rounded-lg flex items-center justify-center gap-sm opacity-50 cursor-not-allowed" disabled=""><span class="material-symbols-outlined text-[20px]">check_circle</span> Aprobar y Generar Código</button></div></div>
+</div>
+<!-- Mini Info Card -->
+
+</aside>
+</div>
+</main>
+
+
+</body></html>
