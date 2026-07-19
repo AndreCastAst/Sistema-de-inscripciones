@@ -82,7 +82,6 @@ export async function enviarConfirmacionInscripcion(
 
       <div style="background:#003DA5;color:white;padding:24px;text-align:center;">
         <h2 style="margin:0;font-size:20px;letter-spacing:0.5px;">COLEGIO DE INGENIEROS DEL PERÚ</h2>
-        <p style="margin:6px 0 0;font-size:12px;opacity:0.85;">RUC: 20100149286 · Av. Arequipa 4947, Miraflores, Lima</p>
       </div>
 
       <div style="background:#e8eef8;padding:16px;text-align:center;border-bottom:1px solid #c8d4ec;">
