@@ -109,11 +109,9 @@ export default function RevisorPage() {
 
   const ESTADOS: { value: string; label: string }[] = [
     { value: "PENDIENTE", label: "Nuevo" },
-    { value: "EN_REVISION", label: "En Revisión" },
     { value: "OBSERVADO", label: "Observado" },
     { value: "SUBSANADO", label: "Corregido" },
     { value: "APROBADO", label: "Admitido" },
-    { value: "RECHAZADO", label: "Rechazado" },
   ];
 
   return (

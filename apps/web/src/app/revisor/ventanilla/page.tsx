@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import { Spinner } from "@/components/ui/Spinner";
-import { consultarDNI, crearPostulacion, getCarreras, obtenerEstadoCuenta, registrarSimulacion, desglosarDeuda, type EstadoCuenta } from "@/lib/api";
+import { consultarDNI, crearPostulacion, obtenerEstadoCuenta, registrarSimulacion, desglosarDeuda, type EstadoCuenta } from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
 import { SimuladorPago, type DatosPago } from "@/components/pagos/SimuladorPago";
 import { getRegion } from "@/lib/auth";
-import type { Carrera } from "@/types";
 
 type TabActiva = "nuevo" | "cobro";
 type MetodoCobro = "efectivo" | "digital" | "voucher";
@@ -16,7 +15,6 @@ type MetodoPagoNuevo = "efectivo" | "digital" | "voucher";
 // ── Tab: Nuevo Expediente Físico ──────────────────────────────────────────────
 
 function TabNuevoExpediente() {
-  const [carreras, setCarreras] = useState<Carrera[]>([]);
   const sede = getRegion();
   const regionId = sede?.id ?? null;
   const regionNombre = sede?.nombre ?? "—";
@@ -28,7 +26,6 @@ function TabNuevoExpediente() {
   const [apellidoPaterno, setApellidoPaterno] = useState("");
   const [apellidoMaterno, setApellidoMaterno] = useState("");
   const [gmail, setGmail] = useState("");
-  const [carreraId, setCarreraId] = useState("");
   const [errorDNI, setErrorDNI] = useState<string | null>(null);
 
   const fotoRef = useRef<HTMLInputElement>(null);
@@ -49,17 +46,6 @@ function TabNuevoExpediente() {
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getCarreras()
-      .then(setCarreras)
-      .catch(() => {
-        setCarreras([
-          { id: 1, nombre: "Civil" }, { id: 2, nombre: "Sistemas e Informática" },
-          { id: 3, nombre: "Industrial" }, { id: 4, nombre: "Mecánica" },
-        ]);
-      });
-  }, []);
 
   async function validarDNI() {
     if (!/^\d{8}$/.test(dni)) { setErrorDNI("Ingresa 8 dígitos numéricos"); return; }
@@ -96,7 +82,7 @@ function TabNuevoExpediente() {
     (metodoPago === "voucher" && voucherEstado === "listo");
 
   async function registrar() {
-    if (!dniVerificado || !fotoUrl || !tituloUrl || !gmail || !carreraId || !regionId || !pagoCompleto) {
+    if (!dniVerificado || !fotoUrl || !tituloUrl || !gmail || !regionId || !pagoCompleto) {
       setError("Complete todos los campos, suba los documentos y registre el pago.");
       return;
     }
@@ -114,7 +100,6 @@ function TabNuevoExpediente() {
       const result = await crearPostulacion({
         dni, nombres, apellidoPaterno, apellidoMaterno, gmail,
         regionId,
-        carreraId: Number(carreraId),
         fotoUrl, tituloUrl,
         voucherUrl: voucherFinal,
         esFisico: true,
@@ -129,7 +114,7 @@ function TabNuevoExpediente() {
 
   function resetForm() {
     setDni(""); setDniVerificado(false); setNombres(""); setApellidoPaterno(""); setApellidoMaterno("");
-    setGmail(""); setCarreraId("");
+    setGmail("");
     setFotoUrl(null); setFotoEstado("idle"); setTituloUrl(null); setTituloEstado("idle");
     setVoucherUrl(null); setVoucherEstado("idle"); setMetodoPago("efectivo"); setPagoRef(null);
     setError(null); setExito(null);
@@ -230,23 +215,13 @@ function TabNuevoExpediente() {
               className="text-[15px] border border-outline-variant rounded-lg px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-surface-container-lowest"
             />
           </div>
-          <div className="flex flex-col gap-xs">
+          <div className="flex flex-col gap-xs md:col-span-2">
             <label className="text-[13px] font-medium text-on-surface-variant">Región</label>
             <div className="flex items-center gap-sm px-md py-sm bg-surface-container border border-outline-variant rounded-lg text-[15px] cursor-not-allowed">
               <span className="material-symbols-outlined text-primary text-lg">location_on</span>
               <span className="text-on-surface font-medium">{regionNombre}</span>
               <span className="ml-auto text-[13px] bg-primary/10 text-primary px-sm py-xs rounded-full">Sede</span>
             </div>
-          </div>
-          <div className="flex flex-col gap-xs">
-            <label className="text-[13px] font-medium text-on-surface-variant">Especialidad / Carrera <span className="text-error">*</span></label>
-            <select
-              value={carreraId} onChange={(e) => setCarreraId(e.target.value)}
-              className="text-[15px] border border-outline-variant rounded-lg px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-surface-container-lowest"
-            >
-              <option value="">Seleccionar del catálogo oficial CIP…</option>
-              {carreras.map((c) => <option key={c.id} value={c.id}>Ing. {c.nombre}</option>)}
-            </select>
           </div>
         </div>
       </div>
