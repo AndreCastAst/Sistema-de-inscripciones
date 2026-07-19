@@ -184,10 +184,29 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
 router.post("/:id/aprobar", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const carreraId = Number(req.body.carreraId);
+
+    // La especialidad puede venir como texto escrito por el admin (carreraNombre)
+    // o como id del catálogo (carreraId). Si viene texto, se busca-o-crea la carrera.
+    const carreraNombreRaw =
+      typeof req.body.carreraNombre === "string" ? req.body.carreraNombre.trim() : "";
+    let carreraId = Number(req.body.carreraId) || 0;
+
+    if (carreraNombreRaw) {
+      // Normalizar: quitar prefijo "Ing." / "Ing " para no duplicar el catálogo
+      const nombre = carreraNombreRaw.replace(/^ing\.?\s+/i, "").trim();
+      if (!nombre) {
+        return res.status(400).json({ error: "La especialidad no puede estar vacía" });
+      }
+      // Reutilizar una carrera existente (sin distinguir mayúsculas) o crear una nueva
+      const existente = await prisma.carrera.findFirst({
+        where: { nombre: { equals: nombre, mode: "insensitive" } },
+      });
+      const carrera = existente ?? (await prisma.carrera.create({ data: { nombre } }));
+      carreraId = carrera.id;
+    }
 
     if (!carreraId) {
-      return res.status(400).json({ error: "Debes seleccionar una especialidad antes de aprobar" });
+      return res.status(400).json({ error: "Debes indicar una especialidad antes de aprobar" });
     }
 
     // Fecha de alta opcional (permite fechas pasadas para probar deudas de mensualidades)

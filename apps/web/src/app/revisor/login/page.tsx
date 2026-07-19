@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loginAdmin } from "@/lib/auth";
+import { loginAdmin, getRol } from "@/lib/auth";
 import axios from "axios";
 
 export default function LoginPage() {
@@ -19,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await loginAdmin(username, password);
-      router.replace("/revisor");
+      router.replace(getRol() === "cajero" ? "/revisor/ventanilla" : "/revisor");
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err)
         ? err.response?.data?.error ?? "Credenciales incorrectas"

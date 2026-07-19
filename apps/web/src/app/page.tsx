@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -254,8 +255,9 @@ export default function HomePage() {
       setExpedienteId(result.id);
       setCorreoEnviado(data.gmail);
       setVoucherPagoRef(voucherFinal ?? null);
-    } catch {
-      setErrorEnvio("Ocurrió un error al enviar la solicitud. Intenta de nuevo.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+      setErrorEnvio(msg ?? "Ocurrió un error al enviar la solicitud. Intenta de nuevo.");
     } finally {
       setEnviando(false);
     }

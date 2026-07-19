@@ -5,41 +5,55 @@ import { useRouter, usePathname } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { isAuthenticated, getRol } from "@/lib/auth";
 
+// Ruta de inicio según el rol
+function rutaInicio(rol: string | null): string {
+  return rol === "cajero" ? "/revisor/ventanilla" : "/revisor";
+}
+
+// ¿El rol tiene permitido estar en esta ruta?
+function rutaPermitida(rol: string | null, pathname: string): boolean {
+  const enVentanilla =
+    pathname === "/revisor/ventanilla" || pathname.startsWith("/revisor/ventanilla/");
+  // El cajero solo puede estar en la ventanilla; el administrador en todo lo demás.
+  return rol === "cajero" ? enVentanilla : !enVentanilla;
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checked, setChecked] = useState(false);
+  const [montado, setMontado] = useState(false);
+
+  // localStorage solo existe en el cliente; hasta montar mostramos el spinner.
+  useEffect(() => {
+    setMontado(true);
+  }, []);
+
+  const esLogin = pathname === "/revisor/login";
+
+  // Decisión de acceso recalculada en CADA render (sin estado "pegajoso"):
+  // el rol vigente y la ruta actual mandan siempre.
+  const autenticado = montado && isAuthenticated();
+  const rol = montado ? getRol() : null;
+  const permitido = esLogin || (autenticado && rutaPermitida(rol, pathname));
 
   useEffect(() => {
-    if (pathname === "/revisor/login") {
-      setChecked(true);
-      return;
-    }
-    if (!isAuthenticated()) {
+    if (!montado || esLogin) return;
+    if (!autenticado) {
       router.replace("/revisor/login");
       return;
     }
-
-    const rol = getRol();
-    const enVentanilla = pathname.startsWith("/revisor/ventanilla");
-
-    if (rol === "cajero" && !enVentanilla) {
-      router.replace("/revisor/ventanilla");
-      return;
+    if (!rutaPermitida(rol, pathname)) {
+      router.replace(rutaInicio(rol));
     }
-    if (rol === "admin" && enVentanilla) {
-      router.replace("/revisor");
-      return;
-    }
+  }, [montado, esLogin, autenticado, rol, pathname, router]);
 
-    setChecked(true);
-  }, [pathname, router]);
-
-  if (pathname === "/revisor/login") {
+  if (esLogin) {
     return <>{children}</>;
   }
 
-  if (!checked) {
+  // Nunca renderizamos el contenido si el rol no corresponde a la ruta:
+  // así el usuario jamás ve —ni por un instante— la pantalla del rol equivocado.
+  if (!permitido) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <span className="material-symbols-outlined animate-spin text-primary text-4xl">

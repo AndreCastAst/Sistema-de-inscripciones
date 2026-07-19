@@ -24,7 +24,7 @@ export default function AuditoriaPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // Panel de decisión
-  const [carreraSeleccionada, setCarreraSeleccionada] = useState<string>("");
+  const [especialidad, setEspecialidad] = useState<string>("");
   const [fechaAlta, setFechaAlta] = useState<string>("");
   const [observacion, setObservacion] = useState("");
   const [procesando, setProcesando] = useState(false);
@@ -52,7 +52,7 @@ export default function AuditoriaPage({ params }: Props) {
       .then(([p, c]) => {
         setPostulacion(p);
         setCarreras(c);
-        setCarreraSeleccionada(p.carreraId ? String(p.carreraId) : "");
+        setEspecialidad(p.carrera ? `Ing. ${p.carrera.nombre}` : "");
       })
       .catch(() => {
         setError("No se pudo cargar el expediente. Verifica la conexión con el servidor.");
@@ -61,8 +61,8 @@ export default function AuditoriaPage({ params }: Props) {
   }, [id]);
 
   async function handleAprobar() {
-    if (!carreraSeleccionada) {
-      setMensajeAccion({ tipo: "error", texto: "Selecciona una especialidad antes de aprobar." });
+    if (!especialidad.trim()) {
+      setMensajeAccion({ tipo: "error", texto: "Indica una especialidad antes de aprobar." });
       return;
     }
     setProcesando(true);
@@ -70,7 +70,7 @@ export default function AuditoriaPage({ params }: Props) {
     try {
       const result = await aprobarPostulacion(
         id,
-        Number(carreraSeleccionada),
+        especialidad.trim(),
         fechaAlta || undefined
       );
       setMensajeAccion({
@@ -437,19 +437,23 @@ export default function AuditoriaPage({ params }: Props) {
                 Asignar Capítulo / Especialidad CIP{" "}
                 <span className="text-error">*</span>
               </label>
-              <select
-                value={carreraSeleccionada}
-                onChange={(e) => setCarreraSeleccionada(e.target.value)}
+              <input
+                type="text"
+                list="catalogo-especialidades"
+                value={especialidad}
+                onChange={(e) => setEspecialidad(e.target.value)}
                 disabled={yaDecidido}
+                placeholder="Escriba o seleccione del catálogo CIP..."
                 className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors disabled:opacity-60"
-              >
-                <option value="">Seleccione del catálogo CIP...</option>
+              />
+              <datalist id="catalogo-especialidades">
                 {carreras.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    Ing. {c.nombre}
-                  </option>
+                  <option key={c.id} value={`Ing. ${c.nombre}`} />
                 ))}
-              </select>
+              </datalist>
+              <p className="text-[12px] text-on-surface-variant/70 mt-xs">
+                Puede elegir una del catálogo o escribir una especialidad nueva.
+              </p>
             </div>
 
             {/* Fecha de colegiatura (permite fechas pasadas para probar deudas) */}
@@ -519,7 +523,7 @@ export default function AuditoriaPage({ params }: Props) {
                 </button>
                 <button
                   onClick={handleAprobar}
-                  disabled={procesando || !carreraSeleccionada}
+                  disabled={procesando || !especialidad.trim()}
                   className="w-full bg-status-aprobado-bg border border-status-aprobado-text/30 text-status-aprobado-text text-[15px] font-semibold h-12 rounded-lg flex items-center justify-center gap-sm hover:bg-status-aprobado-bg/80 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {procesando && <Spinner />}

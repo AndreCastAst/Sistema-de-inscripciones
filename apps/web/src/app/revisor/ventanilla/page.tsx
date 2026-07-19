@@ -105,8 +105,9 @@ function TabNuevoExpediente() {
         esFisico: true,
       });
       setExito(result.id);
-    } catch {
-      setError("Error al registrar el expediente. Intenta de nuevo.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+      setError(msg ?? "Error al registrar el expediente. Intenta de nuevo.");
     } finally {
       setEnviando(false);
     }

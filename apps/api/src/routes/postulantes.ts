@@ -66,6 +66,18 @@ const postulacionSchema = z.object({
 // POST /api/v1/postulantes — registro virtual (postulante) o físico (secretario)
 router.post("/", validate(postulacionSchema), async (req, res, next) => {
   try {
+    // Verificar que el DNI no tenga ya un código CIP (no esté colegiado)
+    const colegiado = await prisma.colegiado.findUnique({
+      where: { dni: req.body.dni },
+      select: { codigo: true },
+    });
+    if (colegiado) {
+      return res.status(409).json({
+        error: `Este DNI ya se encuentra colegiado (código CIP ${colegiado.codigo}). No se puede registrar una nueva solicitud.`,
+        codigoCIP: colegiado.codigo,
+      });
+    }
+
     // Verificar que no exista postulación PENDIENTE o EN_REVISION con ese DNI
     const existe = await prisma.postulacion.findFirst({
       where: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import axios from "axios";
 import { crearPostulacion } from "@/lib/api";
 import { Spinner } from "@/components/ui/Spinner";
 import type { FormDatosPersonales, Region, Carrera } from "@/types";
@@ -32,8 +33,9 @@ export function PasoRevision({ datos, urls, regiones, carreras, onExito, onAtras
         ...urls,
       });
       onExito(postulacion.id);
-    } catch {
-      setError("Ocurrió un error al enviar la solicitud. Intenta de nuevo.");
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
+      setError(msg ?? "Ocurrió un error al enviar la solicitud. Intenta de nuevo.");
     } finally {
       setEnviando(false);
     }

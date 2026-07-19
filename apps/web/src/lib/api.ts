@@ -153,10 +153,13 @@ export async function getPostulacionDetalle(id: number): Promise<PostulacionDeta
 
 export async function aprobarPostulacion(
   id: number,
-  carreraId: number,
+  especialidad: string,
   fechaAlta?: string
 ): Promise<{ codigoCIP: string }> {
-  const { data } = await api.post(`/revisor/${id}/aprobar`, { carreraId, fechaAlta });
+  const { data } = await api.post(`/revisor/${id}/aprobar`, {
+    carreraNombre: especialidad,
+    fechaAlta,
+  });
   return { codigoCIP: data.codigo };
 }
 
