@@ -241,3 +241,62 @@ export async function enviarRecordatorioPago(to: string, nombres: string, mesesP
     `
   );
 }
+
+// Formatea "YYYY-MM" a "Mes Año" (ej. "2026-06" -> "Junio 2026")
+function formatPeriodo(periodo: string): string {
+  const meses = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  ];
+  const [anio, mes] = periodo.split("-");
+  return `${meses[parseInt(mes, 10) - 1] ?? mes} ${anio}`;
+}
+
+// Notificación de una cuota mensual vencida: carnet inhabilitado hasta el pago.
+export async function enviarNotificacionDeudaMes(
+  to: string,
+  nombres: string,
+  periodo: string,
+  codigo?: string
+) {
+  const mesNombre = formatPeriodo(periodo);
+  await enviar(
+    to,
+    `⚠️ Cuota vencida (${mesNombre}) — carnet inhabilitado | CIP`,
+    `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd;border-radius:10px;overflow:hidden;">
+        <div style="background:#003DA5;color:white;padding:24px;text-align:center;">
+          <h2 style="margin:0;font-size:20px;">COLEGIO DE INGENIEROS DEL PERÚ</h2>
+        </div>
+        <div style="background:#ffebee;padding:16px;text-align:center;border-bottom:1px solid #ffcdd2;">
+          <p style="margin:0;font-size:15px;font-weight:700;color:#c62828;">⚠ Carnet inhabilitado por cuota vencida</p>
+        </div>
+        <div style="padding:24px;">
+          <p style="color:#333;font-size:14px;">Estimado/a <strong>${nombres}</strong>,</p>
+          <p style="color:#555;font-size:14px;">
+            Tienes una <strong>deuda pendiente</strong> correspondiente a la cuota mensual de
+            <strong>${mesNombre}</strong>.
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
+            ${codigo ? `<tr><td style="padding:8px 12px;border:1px solid #e0e0e0;font-weight:600;width:45%;">Código CIP</td><td style="padding:8px 12px;border:1px solid #e0e0e0;">${codigo}</td></tr>` : ""}
+            <tr style="background:#f9f9f9;"><td style="padding:8px 12px;border:1px solid #e0e0e0;font-weight:600;">Periodo vencido</td><td style="padding:8px 12px;border:1px solid #e0e0e0;">${mesNombre}</td></tr>
+            <tr><td style="padding:8px 12px;border:1px solid #e0e0e0;font-weight:600;">Monto de la cuota</td><td style="padding:8px 12px;border:1px solid #e0e0e0;font-weight:700;color:#003DA5;">S/ 1.00</td></tr>
+          </table>
+          <div style="margin:20px 0;padding:14px;background:#ffebee;border-left:4px solid #c62828;border-radius:4px;font-size:14px;color:#c62828;">
+            <strong>Tu carnet se encuentra INHABILITADO</strong> para el ejercicio profesional hasta que
+            realices el pago de tu(s) cuota(s) pendiente(s).
+          </div>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${process.env.FRONTEND_URL}/carnet"
+               style="background:#003DA5;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
+              Regularizar mi pago →
+            </a>
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">
+            Colegio de Ingenieros del Perú · Sistema de Inscripciones
+          </p>
+        </div>
+      </div>
+    `
+  );
+}

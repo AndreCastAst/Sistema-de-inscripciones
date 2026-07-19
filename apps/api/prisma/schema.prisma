@@ -74,6 +74,7 @@ model Colegiado {
   region          Region        @relation(fields: [regionId], references: [id])
   carrera         Carrera       @relation(fields: [carreraId], references: [id])
   mensualidades   Mensualidad[]
+  notificaciones  NotificacionMora[]
 }
 
 model Mensualidad {
@@ -86,6 +87,17 @@ model Mensualidad {
   voucherUrl  String?
   mpPaymentId String?
   colegiado   Colegiado   @relation(fields: [colegiadoId], references: [id])
+
+  @@unique([colegiadoId, periodo])
+}
+
+model NotificacionMora {
+  id          Int       @id @default(autoincrement())
+  colegiadoId Int
+  periodo     String    // YYYY-MM
+  notificado  Boolean   @default(true) // false = backfill silencioso (no se envió correo)
+  enviadoEn   DateTime  @default(now())
+  colegiado   Colegiado @relation(fields: [colegiadoId], references: [id])
 
   @@unique([colegiadoId, periodo])
 }

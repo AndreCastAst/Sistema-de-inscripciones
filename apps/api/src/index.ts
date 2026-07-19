@@ -8,6 +8,7 @@ import { catalogoRoutes } from "./routes/catalogos";
 import { colegiadoRoutes } from "./routes/colegiado";
 import { authRoutes } from "./routes/auth";
 import { errorHandler } from "./middlewares/errorHandler";
+import { inicializarNotificacionesMora, iniciarJobNotificaciones } from "./services/notificacionesMora";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -32,4 +33,13 @@ app.use("/api/v1", catalogoRoutes);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`API corriendo en http://localhost:${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`API corriendo en http://localhost:${PORT}`);
+  // Notificaciones de deuda: backfill único silencioso + job diario.
+  try {
+    await inicializarNotificacionesMora();
+    iniciarJobNotificaciones();
+  } catch (e) {
+    console.error("[NotifMora] No se pudo inicializar el job de notificaciones:", e);
+  }
+});
