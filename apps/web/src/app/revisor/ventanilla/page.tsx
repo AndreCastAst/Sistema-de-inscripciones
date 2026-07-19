@@ -204,7 +204,7 @@ function TabNuevoExpediente() {
       <div className="bg-surface-container-low rounded-xl border border-outline-variant p-md">
         <h3 className="text-[15px] font-semibold text-on-surface mb-md flex items-center gap-sm">
           <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
-          Datos de Contacto y Académicos
+          Datos de Contacto
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div className="flex flex-col gap-xs md:col-span-2">
@@ -370,8 +370,8 @@ function TabNuevoExpediente() {
           className="bg-primary text-on-primary text-[15px] font-semibold px-xl py-3 rounded-lg hover:brightness-110 transition-all shadow-sm flex items-center gap-sm disabled:opacity-60"
         >
           {enviando && <Spinner />}
-          <span className="material-symbols-outlined text-xl">how_to_reg</span>
-          Aprobar e Inscribir como Colegiado
+          <span className="material-symbols-outlined text-xl">send</span>
+          Enviar Solicitud
         </button>
       </div>
     </div>
