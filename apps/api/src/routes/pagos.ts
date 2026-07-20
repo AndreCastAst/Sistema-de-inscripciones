@@ -121,12 +121,25 @@ router.post("/checkout", validate(checkoutSchema), async (req, res, next) => {
       return res.status(409).json({ error: "Esta solicitud ya tiene un pago registrado" });
     }
 
-    const preferencia = await crearPreferenciaInscripcion(postulacion.id, {
-      email: postulacion.gmail,
-      nombres: postulacion.nombres,
-      apellidos: `${postulacion.apellidoPaterno} ${postulacion.apellidoMaterno}`.trim(),
-      dni: postulacion.dni,
-    });
+    // `payer` describe a QUIEN PAGA, no al titular del expediente.
+    //
+    // En el portal coinciden: el postulante paga lo suyo, y declarar su nombre y
+    // DNI mejora el puntaje de riesgo. En ventanilla no: paga quien esté en el
+    // mostrador y el correo suele ser el de la sede, así que declarar la
+    // identidad del titular le presenta a MercadoPago un mismo correo con
+    // identidades distintas — un patrón que su antifraude penaliza y que estaba
+    // provocando cc_rejected_high_risk. Ahí se envía solo el correo y se deja
+    // que la pasarela identifique al pagador real en el checkout.
+    const pagador = postulacion.esFisico
+      ? { email: postulacion.gmail }
+      : {
+          email: postulacion.gmail,
+          nombres: postulacion.nombres,
+          apellidos: `${postulacion.apellidoPaterno} ${postulacion.apellidoMaterno}`.trim(),
+          dni: postulacion.dni,
+        };
+
+    const preferencia = await crearPreferenciaInscripcion(postulacion.id, pagador);
     res.json(preferencia);
   } catch (err) {
     next(err);
