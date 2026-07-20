@@ -114,7 +114,12 @@ router.post("/checkout", validate(checkoutSchema), async (req, res, next) => {
       return res.status(409).json({ error: "Esta solicitud ya tiene un pago registrado" });
     }
 
-    const preferencia = await crearPreferenciaInscripcion(postulacion.id, postulacion.gmail);
+    const preferencia = await crearPreferenciaInscripcion(postulacion.id, {
+      email: postulacion.gmail,
+      nombres: postulacion.nombres,
+      apellidos: `${postulacion.apellidoPaterno} ${postulacion.apellidoMaterno}`.trim(),
+      dni: postulacion.dni,
+    });
     res.json(preferencia);
   } catch (err) {
     next(err);
@@ -254,7 +259,12 @@ router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutS
       colegiado.id,
       cuotas.map((c) => ({ periodo: c.periodo, monto: c.monto })),
       mora,
-      colegiado.gmail
+      {
+        email: colegiado.gmail,
+        nombres: colegiado.nombres,
+        apellidos: `${colegiado.apellidoPaterno} ${colegiado.apellidoMaterno}`.trim(),
+        dni: colegiado.dni,
+      }
     );
 
     res.json({ ...preferencia, total, mora, periodos: cuotas.map((c) => c.periodo) });
