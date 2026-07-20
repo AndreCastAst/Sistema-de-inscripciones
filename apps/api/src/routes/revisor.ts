@@ -23,6 +23,18 @@ function fueraDeSede(req: Request, regionId: number): boolean {
   return req.usuario!.regionId !== null && regionId !== req.usuario!.regionId;
 }
 
+// Desde que la inscripción se cobra con MercadoPago, el expediente se crea
+// antes de pagar: quien abandona el checkout deja una solicitud sin pago que no
+// debe llegar a la bandeja. La regla aplica solo hacia adelante — los 17
+// expedientes anteriores sin referencia de pago se siguen viendo, porque son
+// trabajo real ya en curso y ocultarlos los perdería de vista.
+const INICIO_REGLA_PAGO = new Date("2026-07-20T17:00:00.000Z");
+
+// Visible si ya tiene pago registrado, o si es anterior a la regla.
+const filtroPagado = {
+  OR: [{ voucherUrl: { not: null } }, { creadoEn: { lt: INICIO_REGLA_PAGO } }],
+};
+
 // GET /api/v1/revisor/bandeja?page=1&search=xxx&estado=PENDIENTE
 router.get("/bandeja", async (req, res, next) => {
   try {
@@ -52,14 +64,22 @@ router.get("/bandeja", async (req, res, next) => {
       ...regionWhere(req),
       ...(estado ? { estado } : { estado: { in: ESTADOS } }),
       ...(creadoEn.gte || creadoEn.lte ? { creadoEn } : {}),
-      ...(search && {
-        OR: [
-          { dni: { contains: search, mode: "insensitive" } },
-          { nombres: { contains: search, mode: "insensitive" } },
-          { apellidoPaterno: { contains: search, mode: "insensitive" } },
-          { apellidoMaterno: { contains: search, mode: "insensitive" } },
-        ],
-      }),
+      // Se combinan con AND porque la búsqueda también usa OR y uno pisaría al otro.
+      AND: [
+        filtroPagado,
+        ...(search
+          ? [
+              {
+                OR: [
+                  { dni: { contains: search, mode: "insensitive" } },
+                  { nombres: { contains: search, mode: "insensitive" } },
+                  { apellidoPaterno: { contains: search, mode: "insensitive" } },
+                  { apellidoMaterno: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            ]
+          : []),
+      ],
     };
 
     const [total, postulaciones] = await Promise.all([

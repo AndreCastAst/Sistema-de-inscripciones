@@ -5,9 +5,11 @@ import { validate } from "../middlewares/validate";
 import { optionalAuth } from "../middlewares/auth";
 import {
   crearPreferenciaInscripcion,
-  crearPreferenciaMensualidad,
+  crearPreferenciaMensualidades,
+  parseRefMensualidades,
   obtenerPago,
 } from "../services/mercadopago";
+import { calcularEstadoCuenta, calcularMontoPeriodos, CUOTA_BASE } from "../services/cuenta";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -16,6 +18,40 @@ const prisma = new PrismaClient();
 // (consulta pública de carnet) o rol admin/super-admin: sin restricción.
 function fueraDeSedeCajero(req: { usuario?: { rol: string; regionId: number | null } }, regionId: number): boolean {
   return req.usuario?.rol === "cajero" && req.usuario.regionId !== null && regionId !== req.usuario.regionId;
+}
+
+/**
+ * Marca periodos como pagados por MercadoPago. Idempotente: el webhook y la
+ * confirmación al retornar pueden ejecutarla ambas para el mismo pago.
+ */
+async function registrarMensualidadesPagadas(
+  colegiadoId: number,
+  periodos: string[],
+  paymentId: string
+): Promise<void> {
+  for (const periodo of periodos) {
+    await prisma.mensualidad.upsert({
+      where: { colegiadoId_periodo: { colegiadoId, periodo } },
+      update: { pagadoEn: new Date(), metodoPago: "MERCADOPAGO", mpPaymentId: paymentId },
+      create: {
+        colegiadoId,
+        periodo,
+        monto: CUOTA_BASE,
+        pagadoEn: new Date(),
+        metodoPago: "MERCADOPAGO",
+        mpPaymentId: paymentId,
+      },
+    });
+  }
+
+  await prisma.auditoria.create({
+    data: {
+      accion: "PAGO_MENSUALIDAD_MP",
+      entidad: "Colegiado",
+      entidadId: colegiadoId,
+      detalle: `Periodos: ${periodos.join(", ")} | PaymentId: ${paymentId}`,
+    },
+  });
 }
 
 // ─── CONSULTA DE ESTADO DE CUENTA ────────────────────────────────────────────
@@ -35,60 +71,10 @@ router.get("/:query", optionalAuth, async (req, res, next) => {
       return res.status(403).json({ error: "Este colegiado pertenece a otra sede" });
     }
 
-    // Traer todas las mensualidades (pagadas y pendientes)
-    const ahora = new Date();
-    const fechaAlta = new Date(colegiado.fechaAlta);
-    const primerMes = new Date(fechaAlta.getFullYear(), fechaAlta.getMonth() + 1, 1);
-    const mesActualInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-
-    const mensualidadesPagadas = await prisma.mensualidad.findMany({
-      where: { colegiadoId: colegiado.id },
-      select: { id: true, periodo: true, monto: true, pagadoEn: true },
-    });
-
-    const pagadasMap = new Map(mensualidadesPagadas.map((m) => [m.periodo, m]));
-
-    const CUOTA_BASE = 1;
-    const indiceActual = ahora.getFullYear() * 12 + ahora.getMonth();
-
-    // Generar lista completa de meses desde el alta hasta hoy
-    const mensualidades: Array<{
-      id: number | null;
-      periodo: string;
-      monto: number;
-      vencido: boolean;
-      pagadoEn: string | null;
-    }> = [];
-    const cursor = new Date(primerMes);
-    let idFicticio = -1;
-
-    while (cursor <= mesActualInicio) {
-      const periodo = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-      // Vencido = mes anterior al actual (el mes actual se puede pagar sin mora).
-      const vencido = cursor.getFullYear() * 12 + cursor.getMonth() < indiceActual;
-      if (pagadasMap.has(periodo)) {
-        const m = pagadasMap.get(periodo)!;
-        mensualidades.push({
-          id: m.id,
-          periodo,
-          monto: m.monto,
-          vencido,
-          pagadoEn: m.pagadoEn ? m.pagadoEn.toISOString() : null,
-        });
-      } else {
-        mensualidades.push({ id: idFicticio--, periodo, monto: CUOTA_BASE, vencido, pagadoEn: null });
-      }
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-
-    const pendientes = mensualidades.filter((m) => m.pagadoEn === null);
-    // Mora: 1% por cada mes vencido sin pagar (excluye el mes actual), sobre la deuda vencida.
-    const mesesVencidos = pendientes.filter((m) => m.vencido).length;
-    const baseVencida = pendientes.filter((m) => m.vencido).reduce((sum, m) => sum + m.monto, 0);
-    const moraPorcentaje = mesesVencidos; // 1% por mes vencido
-    const totalMora = Math.round(baseVencida * (moraPorcentaje / 100) * 100) / 100;
-    const totalBase = Math.round(pendientes.reduce((sum, m) => sum + m.monto, 0) * 100) / 100;
-    const totalDeuda = Math.round((totalBase + totalMora) * 100) / 100;
+    const { mensualidades, totalDeuda, totalMora, moraPorcentaje } = await calcularEstadoCuenta(
+      colegiado.id,
+      new Date(colegiado.fechaAlta)
+    );
 
     res.json({
       colegiado: {
@@ -239,14 +225,58 @@ router.post("/voucher", validate(voucherSchema), async (req, res, next) => {
 
 // ─── PAGO DE MENSUALIDADES ────────────────────────────────────────────────────
 
-// POST /api/v1/pagos/mensualidad/checkout — crear preferencia para mensualidad (S/1)
-router.post("/mensualidad/checkout", async (req, res, next) => {
+const mensualidadCheckoutSchema = z.object({
+  codigo: z.string().min(1),
+  periodos: z.array(z.string().regex(/^\d{4}-\d{2}$/)).min(1, "Selecciona al menos un periodo"),
+});
+
+// POST /api/v1/pagos/mensualidad/checkout — una preferencia para todos los
+// periodos elegidos, con la mora incluida.
+router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutSchema), async (req, res, next) => {
   try {
-    const { codigo, periodo } = req.body;
+    const { codigo, periodos } = req.body;
     const colegiado = await prisma.colegiado.findUniqueOrThrow({ where: { codigo } });
 
-    const preferencia = await crearPreferenciaMensualidad(colegiado.id, periodo, colegiado.gmail);
-    res.json(preferencia);
+    if (fueraDeSedeCajero(req, colegiado.regionId)) {
+      return res.status(403).json({ error: "Este colegiado pertenece a otra sede" });
+    }
+
+    // El monto se calcula acá, nunca se recibe del cliente: si no, cualquiera
+    // podría fijar el precio de su propia deuda.
+    const estado = await calcularEstadoCuenta(colegiado.id, new Date(colegiado.fechaAlta));
+    const { cuotas, mora, total } = calcularMontoPeriodos(estado, periodos);
+
+    if (cuotas.length === 0) {
+      return res.status(400).json({ error: "Los periodos indicados ya están pagados o no existen" });
+    }
+
+    const preferencia = await crearPreferenciaMensualidades(
+      colegiado.id,
+      cuotas.map((c) => ({ periodo: c.periodo, monto: c.monto })),
+      mora,
+      colegiado.gmail
+    );
+
+    res.json({ ...preferencia, total, mora, periodos: cuotas.map((c) => c.periodo) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/pagos/mensualidad/confirmar — confirma con el payment_id del
+// retorno, sin depender de que el webhook haya llegado.
+router.post("/mensualidad/confirmar", validate(z.object({ paymentId: z.string().min(1) })), async (req, res, next) => {
+  try {
+    const pago = await obtenerPago(req.body.paymentId);
+    if (!pago || pago.status !== "approved") {
+      return res.json({ pagado: false, estado: pago?.status ?? "desconocido" });
+    }
+
+    const ref = parseRefMensualidades(pago.external_reference ?? "");
+    if (!ref) return res.status(400).json({ error: "El pago no corresponde a mensualidades" });
+
+    await registrarMensualidadesPagadas(ref.colegiadoId, ref.periodos, req.body.paymentId);
+    res.json({ pagado: true, periodos: ref.periodos });
   } catch (err) {
     next(err);
   }
@@ -330,33 +360,18 @@ router.post("/notificacion", async (req, res) => {
           detalle: `PaymentId: ${paymentId} | Monto: ${pago.transaction_amount ?? "?"}`,
         },
       });
+    } else if (referencia.startsWith("mensualidades|")) {
+      const ref = parseRefMensualidades(referencia);
+      if (ref) await registrarMensualidadesPagadas(ref.colegiadoId, ref.periodos, paymentId);
     } else if (referencia.startsWith("mensualidad-")) {
-      // formato: mensualidad-{colegiadoId}-{YYYY-MM}
+      // Formato anterior (una preferencia por periodo): mensualidad-{id}-{YYYY-MM}.
+      // Se mantiene por si queda algún pago en vuelo creado antes del cambio.
       const partes = referencia.split("-");
       const colegiadoId = Number(partes[1]);
       const periodo = `${partes[2]}-${partes[3]}`;
-
-      await prisma.mensualidad.upsert({
-        where: { colegiadoId_periodo: { colegiadoId, periodo } },
-        update: { pagadoEn: new Date(), metodoPago: "MERCADOPAGO", mpPaymentId: paymentId },
-        create: {
-          colegiadoId,
-          periodo,
-          monto: 1,
-          pagadoEn: new Date(),
-          metodoPago: "MERCADOPAGO",
-          mpPaymentId: paymentId,
-        },
-      });
-
-      await prisma.auditoria.create({
-        data: {
-          accion: "PAGO_MENSUALIDAD_MP",
-          entidad: "Colegiado",
-          entidadId: colegiadoId,
-          detalle: `Periodo: ${periodo}, PaymentId: ${paymentId}`,
-        },
-      });
+      if (Number.isInteger(colegiadoId) && /^\d{4}-\d{2}$/.test(periodo)) {
+        await registrarMensualidadesPagadas(colegiadoId, [periodo], paymentId);
+      }
     }
 
     res.sendStatus(200);

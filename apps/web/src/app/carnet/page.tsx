@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
-import { buscarColegiado, obtenerEstadoCuenta, desglosarDeuda, api, type EstadoCuenta } from "@/lib/api";
+import {
+  buscarColegiado,
+  obtenerEstadoCuenta,
+  desglosarDeuda,
+  crearCheckoutMensualidades,
+  confirmarPagoMensualidades,
+  api,
+  type EstadoCuenta,
+} from "@/lib/api";
 import { subirPDF } from "@/lib/cloudinary";
-import { SimuladorPago, type DatosPago } from "@/components/pagos/SimuladorPago";
 import type { CarnetData } from "@/types";
 
 // ── Tarjeta de carnet física ──────────────────────────────────────────────────
@@ -87,7 +95,6 @@ function PanelDeudaYPago({
 
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("online");
   const [alcancePago, setAlcancePago] = useState<"vencidas" | "todas">("vencidas");
-  const [mostrarSimulador, setMostrarSimulador] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [exitoPago, setExitoPago] = useState(false);
   const [errorPago, setErrorPago] = useState<string | null>(null);
@@ -135,19 +142,20 @@ function PanelDeudaYPago({
     }
   }
 
-  const datosPago: DatosPago | null = cuenta
-    ? {
-        tipo: "mensualidades",
-        monto: totalAPagar,
-        nombres: cuenta.colegiado.nombres,
-        apellidoPaterno: cuenta.colegiado.apellidoPaterno,
-        apellidoMaterno: cuenta.colegiado.apellidoMaterno,
-        codigoCIP: cuenta.colegiado.codigo,
-        carrera: cuenta.colegiado.carrera.nombre,
-        periodos: periodosAPagar,
-        codigo: cuenta.colegiado.codigo,
-      }
-    : null;
+  // Redirige a MercadoPago con todos los periodos elegidos en una sola
+  // preferencia. El monto final (cuotas + mora) lo calcula el backend.
+  async function pagarConMercadoPago() {
+    if (!cuenta || periodosAPagar.length === 0) return;
+    setProcesando(true);
+    setErrorPago(null);
+    try {
+      const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, periodosAPagar);
+      window.location.href = pref.init_point;
+    } catch {
+      setErrorPago("No se pudo iniciar el pago. Intenta de nuevo en unos minutos.");
+      setProcesando(false);
+    }
+  }
 
   function formatPeriodo(periodo: string): string {
     const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -181,14 +189,6 @@ function PanelDeudaYPago({
 
   return (
     <div className="flex flex-col gap-lg w-full">
-      {mostrarSimulador && datosPago && (
-        <SimuladorPago
-          datos={datosPago}
-          onExito={() => { setMostrarSimulador(false); setExitoPago(true); onPagoExito(); }}
-          onCancelar={() => setMostrarSimulador(false)}
-        />
-      )}
-
       {/* Banner de estado */}
       <div className={`rounded-xl p-md border ${
         inhabilitado
@@ -419,7 +419,7 @@ function PanelDeudaYPago({
               </button>
               <button
                 type="button"
-                onClick={() => metodoPago === "online" ? setMostrarSimulador(true) : confirmarVoucher()}
+                onClick={() => (metodoPago === "online" ? pagarConMercadoPago() : confirmarVoucher())}
                 disabled={procesando || (metodoPago === "voucher" && voucherEstado !== "listo")}
                 className="w-full sm:w-auto h-[48px] px-xl rounded flex items-center justify-center gap-sm text-[15px] font-semibold bg-primary text-on-primary hover:brightness-110 transition-all shadow-sm disabled:opacity-60"
               >
@@ -477,6 +477,93 @@ function PanelDeudaYPago({
 
 // ── Página ────────────────────────────────────────────────────────────────────
 
+/**
+ * Aviso al volver de MercadoPago. Confirma el pago con el payment_id de la URL
+ * en vez de esperar al webhook. Va aislado en su propio componente porque
+ * useSearchParams obliga a renderizado dinámico y aquí queda acotado tras un
+ * Suspense, sin arrastrar toda la página.
+ */
+function AvisoRetornoPago() {
+  const searchParams = useSearchParams();
+  const resultado = searchParams.get("pago");
+  const paymentId = searchParams.get("payment_id") ?? searchParams.get("collection_id");
+
+  const [estado, setEstado] = useState<"oculto" | "confirmando" | "ok" | "fallo">(
+    resultado ? "confirmando" : "oculto"
+  );
+  const [periodos, setPeriodos] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!resultado) return;
+    if (resultado !== "exitoso" || !paymentId) {
+      setEstado("fallo");
+      return;
+    }
+    let cancelado = false;
+    confirmarPagoMensualidades(paymentId)
+      .then((r) => {
+        if (cancelado) return;
+        if (r.pagado) {
+          setPeriodos(r.periodos ?? []);
+          setEstado("ok");
+        } else {
+          setEstado("fallo");
+        }
+      })
+      .catch(() => !cancelado && setEstado("fallo"));
+    return () => {
+      cancelado = true;
+    };
+  }, [resultado, paymentId]);
+
+  if (estado === "oculto") return null;
+
+  if (estado === "confirmando") {
+    return (
+      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-md flex items-center gap-md">
+        <Spinner />
+        <p className="text-[15px] text-on-surface-variant">Confirmando tu pago con MercadoPago...</p>
+      </div>
+    );
+  }
+
+  if (estado === "ok") {
+    return (
+      <div className="bg-status-aprobado-bg border border-status-aprobado-text/20 rounded-xl p-lg flex items-start gap-md">
+        <span
+          className="material-symbols-outlined text-status-aprobado-text text-4xl shrink-0"
+          style={{ fontVariationSettings: "'FILL' 1" }}
+        >
+          check_circle
+        </span>
+        <div>
+          <h3 className="text-[15px] font-semibold text-status-aprobado-text">¡Pago confirmado!</h3>
+          <p className="text-[14px] text-on-surface-variant mt-xs">
+            Se registraron {periodos.length} cuota(s). Vuelve a consultar tu carnet para ver el
+            estado actualizado.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-status-observado-bg border border-status-observado-text/20 rounded-xl p-lg flex items-start gap-md">
+      <span className="material-symbols-outlined text-status-observado-text text-4xl shrink-0">
+        error
+      </span>
+      <div>
+        <h3 className="text-[15px] font-semibold text-status-observado-text">
+          El pago no se completó
+        </h3>
+        <p className="text-[14px] text-on-surface-variant mt-xs">
+          No se registró ningún cargo. Consulta tu carnet e intenta el pago nuevamente.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function ConsultaCarnetPage() {
   const [query, setQuery] = useState("");
   const [buscando, setBuscando] = useState(false);
@@ -517,6 +604,9 @@ export default function ConsultaCarnetPage() {
     <>
       <NavBar activeTab="carnet" />
       <main className="flex-grow w-full max-w-container-admin mx-auto px-md md:px-lg py-xl flex flex-col gap-xl">
+        <Suspense fallback={null}>
+          <AvisoRetornoPago />
+        </Suspense>
         {/* Buscador */}
         <section className="w-full max-w-container-max-form mx-auto">
           <div className="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant flex flex-col gap-md">

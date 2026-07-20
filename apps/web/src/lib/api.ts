@@ -145,6 +145,31 @@ export async function confirmarPagoInscripcion(
   return data;
 }
 
+export interface PreferenciaMensualidades extends PreferenciaPago {
+  total: number;
+  mora: number;
+  periodos: string[];
+}
+
+/**
+ * Crea una sola preferencia para todos los periodos elegidos. El monto lo
+ * calcula el backend (cuotas + mora); acá no se envía ningún importe.
+ */
+export async function crearCheckoutMensualidades(
+  codigo: string,
+  periodos: string[]
+): Promise<PreferenciaMensualidades> {
+  const { data } = await api.post("/pagos/mensualidad/checkout", { codigo, periodos });
+  return data;
+}
+
+export async function confirmarPagoMensualidades(
+  paymentId: string
+): Promise<{ pagado: boolean; periodos?: string[] }> {
+  const { data } = await api.post("/pagos/mensualidad/confirmar", { paymentId });
+  return data;
+}
+
 export interface EstadoPagoInscripcion {
   id: number;
   pagado: boolean;

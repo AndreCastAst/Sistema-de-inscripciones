@@ -49,28 +49,69 @@ export async function crearPreferenciaInscripcion(postulacionId: number, email: 
   };
 }
 
-export async function crearPreferenciaMensualidad(colegiadoId: number, periodo: string, email: string): Promise<PreferenciaResult> {
+/**
+ * Referencia de un pago de mensualidades. Se usa "|" como separador porque los
+ * periodos son YYYY-MM y partir por "-" haría ambiguo dónde termina cada dato.
+ */
+export function refMensualidades(colegiadoId: number, periodos: string[]): string {
+  return `mensualidades|${colegiadoId}|${periodos.join(",")}`;
+}
+
+export function parseRefMensualidades(
+  ref: string
+): { colegiadoId: number; periodos: string[] } | null {
+  const [tipo, id, lista] = ref.split("|");
+  if (tipo !== "mensualidades" || !id || !lista) return null;
+  const colegiadoId = Number(id);
+  if (!Number.isInteger(colegiadoId) || colegiadoId <= 0) return null;
+  return { colegiadoId, periodos: lista.split(",").filter(Boolean) };
+}
+
+/**
+ * Una sola preferencia para todos los periodos seleccionados, más una línea de
+ * mora si corresponde. Antes se creaba una preferencia por mes (pagar 10 meses
+ * eran 10 checkouts) y la mora no se cobraba nunca.
+ */
+export async function crearPreferenciaMensualidades(
+  colegiadoId: number,
+  cuotas: Array<{ periodo: string; monto: number }>,
+  mora: number,
+  email: string
+): Promise<PreferenciaResult> {
+  const periodos = cuotas.map((c) => c.periodo);
+  const referencia = refMensualidades(colegiadoId, periodos);
+  const retorno = `${process.env.FRONTEND_URL}/carnet`;
+
+  const items = cuotas.map((c) => ({
+    id: `cuota-${colegiadoId}-${c.periodo}`,
+    title: `Cuota ordinaria ${c.periodo} – Colegio de Ingenieros del Perú`,
+    quantity: 1,
+    unit_price: c.monto,
+    currency_id: "PEN",
+  }));
+
+  if (mora > 0) {
+    items.push({
+      id: `mora-${colegiadoId}`,
+      title: `Mora por cuotas vencidas (${periodos.length} periodo(s))`,
+      quantity: 1,
+      unit_price: mora,
+      currency_id: "PEN",
+    });
+  }
+
   const preference = new Preference(client);
   const result = await preference.create({
     body: {
-      items: [
-        {
-          id: `mensualidad-${colegiadoId}-${periodo}`,
-          title: `Mensualidad ${periodo} – Colegio de Ingenieros del Perú`,
-          description: "Cuota mensual S/1",
-          quantity: 1,
-          unit_price: 1,
-          currency_id: "PEN",
-        },
-      ],
+      items,
       payer: { email },
       back_urls: {
-        success: `${process.env.FRONTEND_URL}/colegiado?pago=exitoso&periodo=${periodo}`,
-        failure: `${process.env.FRONTEND_URL}/colegiado?pago=fallido&periodo=${periodo}`,
-        pending: `${process.env.FRONTEND_URL}/colegiado?pago=pendiente&periodo=${periodo}`,
+        success: `${retorno}?pago=exitoso`,
+        failure: `${retorno}?pago=fallido`,
+        pending: `${retorno}?pago=pendiente`,
       },
       ...autoReturn,
-      external_reference: `mensualidad-${colegiadoId}-${periodo}`,
+      external_reference: referencia,
       notification_url: `${process.env.BACKEND_URL}/api/v1/pagos/notificacion`,
     },
   });

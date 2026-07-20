@@ -3,9 +3,8 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import { Spinner } from "@/components/ui/Spinner";
-import { consultarDNI, crearPostulacion, obtenerEstadoCuenta, registrarSimulacion, desglosarDeuda, type EstadoCuenta } from "@/lib/api";
+import { consultarDNI, crearPostulacion, obtenerEstadoCuenta, registrarSimulacion, desglosarDeuda, crearCheckoutInscripcion, crearCheckoutMensualidades, type EstadoCuenta } from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
-import { SimuladorPago, type DatosPago } from "@/components/pagos/SimuladorPago";
 import { getRegion } from "@/lib/auth";
 
 type TabActiva = "nuevo" | "cobro";
@@ -40,8 +39,6 @@ function TabNuevoExpediente() {
   const [voucherEstado, setVoucherEstado] = useState<"idle" | "subiendo" | "listo" | "error">("idle");
 
   const [metodoPago, setMetodoPago] = useState<MetodoPagoNuevo>("efectivo");
-  const [mostrarSimulador, setMostrarSimulador] = useState(false);
-  const [pagoRef, setPagoRef] = useState<string | null>(null);
 
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState<number | null>(null);
@@ -78,7 +75,8 @@ function TabNuevoExpediente() {
 
   const pagoCompleto =
     (metodoPago === "efectivo") ||
-    (metodoPago === "digital" && pagoRef !== null) ||
+    // Con pasarela el cobro ocurre después de registrar, así que no se exige acá.
+    (metodoPago === "digital") ||
     (metodoPago === "voucher" && voucherEstado === "listo");
 
   async function registrar() {
@@ -89,14 +87,15 @@ function TabNuevoExpediente() {
     setEnviando(true);
     setError(null);
     try {
+      // Con pasarela digital el expediente se crea sin pago y se cobra después
+      // en MercadoPago; efectivo y voucher se registran en el acto.
       let voucherFinal: string | undefined;
       if (metodoPago === "efectivo") {
         voucherFinal = `SIM-EFECTIVO-VNT-${Date.now()}`;
-      } else if (metodoPago === "digital") {
-        voucherFinal = pagoRef ?? undefined;
-      } else {
+      } else if (metodoPago === "voucher") {
         voucherFinal = voucherUrl ?? undefined;
       }
+
       const result = await crearPostulacion({
         dni, nombres, apellidoPaterno, apellidoMaterno, gmail,
         regionId,
@@ -104,6 +103,13 @@ function TabNuevoExpediente() {
         voucherUrl: voucherFinal,
         esFisico: true,
       });
+
+      if (metodoPago === "digital") {
+        const pref = await crearCheckoutInscripcion(result.id);
+        window.location.href = pref.init_point;
+        return;
+      }
+
       setExito(result.id);
     } catch (err) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
@@ -117,15 +123,9 @@ function TabNuevoExpediente() {
     setDni(""); setDniVerificado(false); setNombres(""); setApellidoPaterno(""); setApellidoMaterno("");
     setGmail("");
     setFotoUrl(null); setFotoEstado("idle"); setTituloUrl(null); setTituloEstado("idle");
-    setVoucherUrl(null); setVoucherEstado("idle"); setMetodoPago("efectivo"); setPagoRef(null);
+    setVoucherUrl(null); setVoucherEstado("idle"); setMetodoPago("efectivo");
     setError(null); setExito(null);
   }
-
-  const datosPago: DatosPago = {
-    tipo: "inscripcion", monto: 3,
-    nombres: nombres || "Postulante",
-    apellidoPaterno, apellidoMaterno,
-  };
 
   if (exito) {
     return (
@@ -142,18 +142,6 @@ function TabNuevoExpediente() {
 
   return (
     <>
-      {mostrarSimulador && (
-        <SimuladorPago
-          datos={datosPago}
-          onExito={(info) => {
-            const digits = info.numOp.split("-")[1] ?? Date.now().toString().slice(-8);
-            setPagoRef(`SIM-${info.banco}-${digits}-${info.codigoVoucher}`);
-            setMostrarSimulador(false);
-          }}
-          onCancelar={() => setMostrarSimulador(false)}
-        />
-      )}
-
     <div className="space-y-lg">
       {/* DNI */}
       <div className="bg-surface-container-low rounded-xl border border-outline-variant p-md">
@@ -282,7 +270,7 @@ function TabNuevoExpediente() {
             <button
               key={key}
               type="button"
-              onClick={() => { setMetodoPago(key); setPagoRef(null); setVoucherUrl(null); setVoucherEstado("idle"); }}
+              onClick={() => { setMetodoPago(key); setVoucherUrl(null); setVoucherEstado("idle"); }}
               className={`flex-1 py-sm rounded-md text-[13px] font-medium transition-all ${
                 metodoPago === key
                   ? "bg-surface-container-lowest text-primary font-semibold shadow-sm"
@@ -306,29 +294,13 @@ function TabNuevoExpediente() {
 
         {/* Pasarela Digital */}
         {metodoPago === "digital" && (
-          <div className="mt-sm">
-            {pagoRef ? (
-              <div className="flex items-center gap-sm p-md bg-status-aprobado-bg border border-status-aprobado-text/30 rounded-xl">
-                <span className="material-symbols-outlined text-status-aprobado-text text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                <div className="flex-1">
-                  <p className="text-[15px] font-semibold text-status-aprobado-text">Pago de S/ 3.00 completado</p>
-                  <p className="text-[13px] text-on-surface-variant font-mono mt-xs">{pagoRef}</p>
-                </div>
-                <button type="button" onClick={() => setMostrarSimulador(true)}
-                  className="text-[13px] text-primary underline hover:text-primary/80">
-                  Cambiar
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setMostrarSimulador(true)}
-                className="w-full flex items-center justify-center gap-sm p-md bg-primary text-on-primary rounded-xl hover:brightness-110 transition-all font-semibold text-[15px] shadow-sm"
-              >
-                <span className="material-symbols-outlined text-xl">account_balance</span>
-                Proceder al pago — S/ 3.00
-              </button>
-            )}
+          <div className="mt-sm flex items-start gap-sm p-md bg-primary/5 border border-primary/20 rounded-xl">
+            <span className="material-symbols-outlined text-primary shrink-0">info</span>
+            <div className="text-[13px] text-on-surface-variant">
+              <p className="font-semibold text-on-surface mb-xs">Cobro de S/ 3.00 con MercadoPago</p>
+              Al registrar el expediente se abrirá MercadoPago para completar el pago con tarjeta,
+              Yape o saldo.
+            </div>
           </div>
         )}
 
@@ -434,8 +406,27 @@ function TabTerminalCobro() {
     if (!cuenta || periodosAPagar.length === 0) return;
     setProcesando(true);
     setErrorCobro(null);
+
+    // Pasarela digital: cobro real por MercadoPago. Efectivo y voucher se
+    // siguen registrando en ventanilla, que es donde ocurre el pago físico.
+    if (metodoCobro === "digital") {
+      try {
+        const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, periodosAPagar);
+        window.location.href = pref.init_point;
+        return;
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 403) {
+          setErrorCobro("Este colegiado pertenece a otra sede. No tienes permisos para cobrarle.");
+        } else {
+          setErrorCobro("No se pudo iniciar el pago con MercadoPago. Intenta de nuevo.");
+        }
+        setProcesando(false);
+        return;
+      }
+    }
+
     try {
-      const banco = metodoCobro === "efectivo" ? "VENTANILLA" : metodoCobro === "digital" ? "PASARELA" : "VOUCHER";
+      const banco = metodoCobro === "efectivo" ? "VENTANILLA" : "VOUCHER";
       const numeroOperacion = `VNT-${Date.now()}`;
       await registrarSimulacion({
         banco,
