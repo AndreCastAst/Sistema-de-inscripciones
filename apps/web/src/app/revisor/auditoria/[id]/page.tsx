@@ -84,6 +84,17 @@ export default function AuditoriaPage({ params }: Props) {
   }, [id]);
 
   async function handleAprobar() {
+    // Un documento marcado con "Obs." es un reparo pendiente: aprobar dejaría
+    // al postulante colegiado con documentación que el propio revisor objetó.
+    if (camposObservados.length > 0) {
+      setMensajeAccion({
+        tipo: "error",
+        texto: `No puedes aprobar con documentos observados (${camposObservados
+          .map((c) => CAMPO_LABEL[c].toLowerCase())
+          .join(", ")}). Envía la observación, o márcalos como OK si están conformes.`,
+      });
+      return;
+    }
     if (!especialidad.trim()) {
       setMensajeAccion({ tipo: "error", texto: "Indica una especialidad antes de aprobar." });
       return;
@@ -630,13 +641,33 @@ export default function AuditoriaPage({ params }: Props) {
                 </button>
                 <button
                   onClick={handleAprobar}
-                  disabled={procesando || !especialidad.trim()}
+                  disabled={procesando || !especialidad.trim() || camposObservados.length > 0}
+                  title={
+                    camposObservados.length > 0
+                      ? "Hay documentos marcados como observados"
+                      : undefined
+                  }
                   className="w-full bg-status-aprobado-bg border border-status-aprobado-text/30 text-status-aprobado-text text-[15px] font-semibold h-12 rounded-lg flex items-center justify-center gap-sm hover:bg-status-aprobado-bg/80 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {procesando && <Spinner />}
                   <span className="material-symbols-outlined text-xl">check_circle</span>
                   Aprobar y Generar Código CIP
                 </button>
+
+                {/* Por qué está bloqueada la aprobación */}
+                {camposObservados.length > 0 && (
+                  <p className="text-[12px] text-status-observado-text flex items-start gap-xs">
+                    <span className="material-symbols-outlined text-base shrink-0">block</span>
+                    <span>
+                      No se puede aprobar con{" "}
+                      <strong>
+                        {camposObservados.map((c) => CAMPO_LABEL[c].toLowerCase()).join(" y ")}
+                      </strong>{" "}
+                      en observación. Envía la observación al postulante, o marca el documento como{" "}
+                      <strong>OK</strong> si está conforme.
+                    </span>
+                  </p>
+                )}
               </div>
             ) : (
               <div className="pt-md border-t border-outline-variant">
