@@ -48,24 +48,24 @@ export async function enviarConfirmacionInscripcion(
     apellidoMaterno: string;
     dni: string;
     voucherUrl?: string;
+    mpPaymentId?: string;
     pdfBuffer?: Buffer;
   }
 ) {
-  const { postulacionId, nombres, apellidoPaterno, apellidoMaterno, dni, voucherUrl, pdfBuffer } = datos;
+  const { postulacionId, nombres, apellidoPaterno, apellidoMaterno, dni, voucherUrl, mpPaymentId, pdfBuffer } = datos;
   const nombreCompleto = `${apellidoPaterno} ${apellidoMaterno}, ${nombres}`;
-  // "mp:" = cobro real confirmado por MercadoPago; "SIM-" = pago en ventanilla
-  // o simulado. Ambos son pagos ya resueltos; un enlace http es un voucher
-  // bancario que el revisor todavía tiene que verificar.
-  const esPasarela = voucherUrl?.startsWith("SIM-") || voucherUrl?.startsWith("mp:");
+  // Pago ya resuelto: cobrado por MercadoPago o registrado en ventanilla. Un
+  // voucher bancario suelto, en cambio, el revisor todavía debe verificarlo.
+  const esPasarela = Boolean(mpPaymentId) || voucherUrl?.startsWith("SIM-");
   const fecha = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
   const hora  = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 
   // La referencia interna no se muestra cruda: un voucher bancario es una URL
   // larga de Cloudinary que al postulante no le dice nada.
-  const referenciaLegible = !voucherUrl
+  const referenciaLegible = mpPaymentId
+    ? `MercadoPago · Op. ${mpPaymentId}`
+    : !voucherUrl
     ? null
-    : voucherUrl.startsWith("mp:")
-    ? `MercadoPago · Op. ${voucherUrl.slice(3)}`
     : voucherUrl.startsWith("SIM-")
     ? voucherUrl
     : "Voucher bancario adjunto";

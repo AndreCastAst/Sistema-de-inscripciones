@@ -9,7 +9,7 @@ import {
   parseRefMensualidades,
   obtenerPago,
 } from "../services/mercadopago";
-import { enviarConfirmacionDePago } from "../services/confirmacion";
+import { registrarPagoInscripcion } from "../services/confirmacion";
 import {
   calcularEstadoCuenta,
   calcularMontoPeriodos,
@@ -167,10 +167,9 @@ router.post("/inscripcion/:id/confirmar", validate(confirmarSchema), async (req,
       return res.status(400).json({ error: "El pago no corresponde a esta solicitud" });
     }
 
-    await prisma.postulacion.update({
-      where: { id },
-      data: { voucherUrl: `mp:${paymentId}` },
-    });
+    // Genera la boleta, la guarda como comprobante y notifica al postulante.
+    // Es idempotente: si el webhook llegó primero, no duplica nada.
+    await registrarPagoInscripcion(id, paymentId);
 
     await prisma.auditoria.create({
       data: {
@@ -181,11 +180,8 @@ router.post("/inscripcion/:id/confirmar", validate(confirmarSchema), async (req,
       },
     });
 
-    // El expediente ya tenía voucherUrl null al entrar (se verifica arriba), así
-    // que este es el único punto que confirma el pago: el correo sale una vez.
-    await enviarConfirmacionDePago(id).catch(console.error);
-
-    res.json({ pagado: true, referencia: `mp:${paymentId}` });
+    const actualizada = await prisma.postulacion.findUnique({ where: { id } });
+    res.json({ pagado: true, referencia: actualizada?.voucherUrl ?? null });
   } catch (err) {
     next(err);
   }
@@ -402,10 +398,9 @@ router.post("/notificacion", async (req, res) => {
 
     if (referencia.startsWith("inscripcion-")) {
       const postulacionId = Number(referencia.split("-")[1]);
-      await prisma.postulacion.update({
-        where: { id: postulacionId },
-        data: { voucherUrl: `mp:${paymentId}` },
-      });
+
+      // Genera la boleta, la guarda como comprobante y notifica al postulante.
+      await registrarPagoInscripcion(postulacionId, paymentId);
 
       await prisma.auditoria.create({
         data: {
@@ -415,9 +410,6 @@ router.post("/notificacion", async (req, res) => {
           detalle: `PaymentId: ${paymentId} | Monto: ${pago.transaction_amount ?? "?"}`,
         },
       });
-
-      // Recién ahora el postulante recibe la confirmación con su boleta.
-      await enviarConfirmacionDePago(postulacionId).catch(console.error);
     } else if (referencia.startsWith("mensualidades|")) {
       const ref = parseRefMensualidades(referencia);
       if (ref) await registrarMensualidadesPagadas(ref.colegiadoId, ref.periodos, paymentId);

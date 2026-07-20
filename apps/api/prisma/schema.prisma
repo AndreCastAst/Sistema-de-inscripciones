@@ -41,6 +41,9 @@ model Postulacion {
   // Evita que el postulante tenga que identificarse con su DNI: el enlace ya
   // apunta a su expediente. Se renueva en cada observación y se anula al subsanar.
   tokenSubsanacion String?          @unique
+  // ID del pago en MercadoPago. Va aparte porque voucherUrl guarda el PDF de la
+  // boleta para que el revisor pueda verla, y antes se usaba para la referencia.
+  mpPaymentId     String?
   regionId        Int
   carreraId       Int?
   region          Region            @relation(fields: [regionId], references: [id])
