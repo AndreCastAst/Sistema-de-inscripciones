@@ -7,6 +7,12 @@ import { requireAuth, requireRole } from "../middlewares/auth";
 import { generarCodigo } from "../services/correlativo";
 import { enviarObservacion, enviarAprobacion, enviarRedireccionSede } from "../services/email";
 import { firmarUrl } from "../services/cloudinary";
+import {
+  aplicarSubsanacion,
+  subsanacionSchema,
+  CAMPOS_SUBSANABLES,
+  ETIQUETA_CAMPO,
+} from "../services/subsanacion";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -109,6 +115,80 @@ router.get("/bandeja", async (req, res, next) => {
   }
 });
 
+// ─── SUBSANACIÓN PRESENCIAL (módulo del admin) ───────────────────────────────
+
+// GET /api/v1/revisor/subsanacion/:dni — abre el expediente observado de un DNI
+// para que el admin cargue los documentos corregidos en nombre del postulante.
+//
+// Busca sin filtrar por sede y discrimina después, para poder explicar por qué
+// no se puede subsanar en vez de devolver un 404 genérico.
+router.get("/subsanacion/:dni", async (req, res, next) => {
+  try {
+    const dni = req.params.dni;
+    if (!/^\d{8}$/.test(dni)) {
+      return res.status(400).json({ error: "El DNI debe tener 8 dígitos" });
+    }
+
+    const postulacion = await prisma.postulacion.findFirst({
+      where: { dni, estado: { in: ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO"] } },
+      include: {
+        region: true,
+        carrera: true,
+        observaciones: { orderBy: { creadoEn: "desc" }, take: 5 },
+      },
+      orderBy: { creadoEn: "desc" },
+    });
+
+    if (!postulacion) {
+      return res.status(404).json({ error: "No se encontró expediente activo para ese DNI" });
+    }
+    if (fueraDeSede(req, postulacion.regionId)) {
+      return res.status(403).json({
+        error: `Este expediente pertenece a la sede ${postulacion.region.nombre}. Debe subsanarlo un administrador de esa sede.`,
+      });
+    }
+    if (postulacion.estado !== "OBSERVADO") {
+      return res.status(409).json({
+        error: `El expediente #${postulacion.id} está en estado ${postulacion.estado} y no requiere subsanación.`,
+        estado: postulacion.estado,
+      });
+    }
+
+    res.json(postulacion);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/revisor/:id/subsanar — el admin reemplaza los documentos
+// observados. La restricción de campos la aplica el mismo servicio que protege
+// el camino público; acá solo se suman el filtro de sede y la trazabilidad.
+router.post("/:id/subsanar", validate(subsanacionSchema), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const actual = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
+
+    if (fueraDeSede(req, actual.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
+
+    const enviados = CAMPOS_SUBSANABLES.filter((c) =>
+      c === "foto" ? req.body.fotoUrl : c === "titulo" ? req.body.tituloUrl : req.body.voucherUrl
+    );
+
+    const postulacion = await aplicarSubsanacion(id, req.body, {
+      actorId: req.usuario!.id,
+      detalle: `Carga presencial en sede. Documentos: ${enviados
+        .map((c) => ETIQUETA_CAMPO[c])
+        .join(", ")}`,
+    });
+
+    res.json(postulacion);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/v1/revisor/:id — ver expediente completo
 router.get("/:id", async (req, res, next) => {
   try {
@@ -157,8 +237,6 @@ router.post("/:id/iniciar", async (req, res, next) => {
     next(err);
   }
 });
-
-export const CAMPOS_SUBSANABLES = ["foto", "titulo", "voucher"] as const;
 
 const observarSchema = z.object({
   mensaje: z.string().min(10, "La observación debe tener al menos 10 caracteres"),

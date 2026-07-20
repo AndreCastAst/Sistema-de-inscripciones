@@ -69,6 +69,7 @@ export function AdminSidebar() {
       <div className="flex-1 overflow-y-auto flex flex-col gap-unit px-sm">
         {!esCajero && navItem("/revisor", "folder_shared", "Bandeja de Expedientes")}
         {!esCajero && navItem("/revisor/auditoria", "fact_check", "Auditoría Documental")}
+        {!esCajero && navItem("/revisor/subsanacion", "upload_file", "Subsanación Presencial")}
         {esCajero && navItem("/revisor/ventanilla", "point_of_sale", "Módulo de Ventanilla")}
       </div>
 

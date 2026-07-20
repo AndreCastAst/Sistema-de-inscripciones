@@ -280,6 +280,26 @@ export async function observarPostulacion(
   await api.post(`/revisor/${id}/observar`, { mensaje, revisorId, campos });
 }
 
+// ─── Subsanación presencial (módulo del admin) ───────────────────────────────
+
+/**
+ * Busca el expediente OBSERVADO de un DNI dentro de la sede del admin.
+ * Lanza con el mensaje del backend para poder distinguir 404 / 403 / 409.
+ */
+export async function buscarObservadoParaSubsanar(dni: string): Promise<PostulacionDetalle> {
+  const { data } = await api.get(`/revisor/subsanacion/${dni}`);
+  return data;
+}
+
+/** Reemplaza documentos observados en nombre del postulante, desde la sede. */
+export async function subsanarComoAdmin(
+  id: number,
+  body: { fotoUrl?: string; tituloUrl?: string; voucherUrl?: string }
+): Promise<PostulacionDetalle> {
+  const { data } = await api.post(`/revisor/${id}/subsanar`, body);
+  return data;
+}
+
 export async function buscarPostulacionPorDNI(
   dni: string
 ): Promise<PostulacionDetalle> {

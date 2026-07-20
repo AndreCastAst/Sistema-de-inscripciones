@@ -5,6 +5,7 @@ import { validate } from "../middlewares/validate";
 import { consultarDNI } from "../services/reniec";
 import { firmarUrl } from "../services/cloudinary";
 import { enviarConfirmacionDePago, registrarPagoVentanilla } from "../services/confirmacion";
+import { aplicarSubsanacion, subsanacionSchema } from "../services/subsanacion";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -176,15 +177,6 @@ router.get("/subsanacion/:token", async (req, res, next) => {
   }
 });
 
-const subsanacionSchema = z.object({
-  fotoUrl: z.string().url().optional(),
-  tituloUrl: z.string().url().optional(),
-  voucherUrl: z.string().url().optional(),
-}).refine(
-  (data) => data.fotoUrl || data.tituloUrl || data.voucherUrl,
-  { message: "Debe enviar al menos un documento para subsanar" }
-);
-
 // PATCH /api/v1/postulantes/subsanacion/:token — subsanación desde el enlace
 // del correo. Misma lógica que por id, pero identificando por token.
 router.patch("/subsanacion/:token", validate(subsanacionSchema), async (req, res, next) => {
@@ -195,83 +187,19 @@ router.patch("/subsanacion/:token", validate(subsanacionSchema), async (req, res
     if (!actual) {
       return res.status(404).json({ error: "Este enlace no es válido o ya fue utilizado" });
     }
-    return aplicarSubsanacion(actual.id, req, res, next);
+    res.json(await aplicarSubsanacion(actual.id, req.body));
   } catch (err) {
     next(err);
   }
 });
 
 // PATCH /api/v1/postulantes/:id — subsanación de documentos observados
-router.patch("/:id", validate(subsanacionSchema), async (req, res, next) =>
-  aplicarSubsanacion(Number(req.params.id), req, res, next)
-);
-
-async function aplicarSubsanacion(id: number, req: any, res: any, next: any) {
+router.patch("/:id", validate(subsanacionSchema), async (req, res, next) => {
   try {
-    const actual = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
-
-    if (actual.estado !== "OBSERVADO") {
-      return res.status(400).json({
-        error: "Solo se pueden subsanar postulaciones en estado OBSERVADO",
-      });
-    }
-
-    // El postulante solo puede reemplazar los documentos que el revisor marcó
-    // en la última observación. La UI ya los oculta, pero la restricción tiene
-    // que vivir acá: el PATCH es público y se puede llamar directo.
-    const ultima = await prisma.observacion.findFirst({
-      where: { postulacionId: id },
-      orderBy: { creadoEn: "desc" },
-    });
-    // Observaciones anteriores a esta función no tienen campos marcados; en ese
-    // caso se permite corregir todo para no bloquear expedientes ya notificados.
-    const permitidos = ultima?.campos.length ? ultima.campos : ["foto", "titulo", "voucher"];
-
-    const { fotoUrl, tituloUrl, voucherUrl } = req.body;
-    const enviados = [
-      ...(fotoUrl ? ["foto"] : []),
-      ...(tituloUrl ? ["titulo"] : []),
-      ...(voucherUrl ? ["voucher"] : []),
-    ];
-    const noPermitidos = enviados.filter((c) => !permitidos.includes(c));
-    if (noPermitidos.length) {
-      const ETIQUETA: Record<string, string> = {
-        foto: "fotografía",
-        titulo: "título profesional",
-        voucher: "comprobante de pago",
-      };
-      return res.status(400).json({
-        error: `Solo puedes corregir los documentos observados. No corresponde modificar: ${noPermitidos
-          .map((c) => ETIQUETA[c] ?? c)
-          .join(", ")}.`,
-      });
-    }
-
-    const postulacion = await prisma.postulacion.update({
-      where: { id },
-      data: {
-        ...(fotoUrl && { fotoUrl }),
-        ...(tituloUrl && { tituloUrl }),
-        ...(voucherUrl && { voucherUrl }),
-        estado: "SUBSANADO",
-        // El enlace del correo queda inutilizable: ya cumplió su propósito y no
-        // debe permitir reemplazar documentos de un expediente ya reenviado.
-        tokenSubsanacion: null,
-      },
-    });
-
-    await prisma.auditoria.create({
-      data: {
-        accion: "SUBSANACION",
-        entidad: "Postulacion",
-        entidadId: id,
-      },
-    });
-
-    res.json(postulacion);
+    res.json(await aplicarSubsanacion(Number(req.params.id), req.body));
   } catch (err) {
     next(err);
   }
-}
+});
 
 export { router as postulanteRoutes };
