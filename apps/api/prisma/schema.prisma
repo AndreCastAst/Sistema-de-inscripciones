@@ -44,6 +44,9 @@ model Postulacion {
   // ID del pago en MercadoPago. Va aparte porque voucherUrl guarda el PDF de la
   // boleta para que el revisor pueda verla, y antes se usaba para la referencia.
   mpPaymentId     String?
+  // Referencia legible del pago (nº de operación, caja, banco). voucherUrl pasó
+  // a guardar el PDF del comprobante, así que el dato del cobro vive acá.
+  referenciaPago  String?
   regionId        Int
   carreraId       Int?
   region          Region            @relation(fields: [regionId], references: [id])

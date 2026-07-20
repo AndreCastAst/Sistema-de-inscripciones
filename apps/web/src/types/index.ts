@@ -50,6 +50,9 @@ export interface Postulacion {
   tituloUrl: string | null;
   voucherUrl: string | null;
   estado: EstadoPostulacion;
+  /** Referencia legible del pago (nº operación, banco/caja); null si no hay pago. */
+  referenciaPago: string | null;
+  mpPaymentId: string | null;
   regionId: number;
   carreraId: number;
   creadoEn: string;      // el frontend recibe fechas como string ISO

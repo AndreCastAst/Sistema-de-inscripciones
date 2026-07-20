@@ -48,27 +48,23 @@ export async function enviarConfirmacionInscripcion(
     apellidoMaterno: string;
     dni: string;
     voucherUrl?: string;
-    mpPaymentId?: string;
+    /** Referencia legible del pago; null si aún no hay pago resuelto. */
+    referenciaPago?: string;
+    /** false para un voucher bancario que el revisor todavía debe verificar. */
+    pagoConfirmado?: boolean;
     pdfBuffer?: Buffer;
   }
 ) {
-  const { postulacionId, nombres, apellidoPaterno, apellidoMaterno, dni, voucherUrl, mpPaymentId, pdfBuffer } = datos;
+  const { postulacionId, nombres, apellidoPaterno, apellidoMaterno, dni, voucherUrl, referenciaPago, pagoConfirmado, pdfBuffer } = datos;
   const nombreCompleto = `${apellidoPaterno} ${apellidoMaterno}, ${nombres}`;
-  // Pago ya resuelto: cobrado por MercadoPago o registrado en ventanilla. Un
-  // voucher bancario suelto, en cambio, el revisor todavía debe verificarlo.
-  const esPasarela = Boolean(mpPaymentId) || voucherUrl?.startsWith("SIM-");
+  const esPasarela = Boolean(pagoConfirmado);
   const fecha = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
   const hora  = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 
   // La referencia interna no se muestra cruda: un voucher bancario es una URL
   // larga de Cloudinary que al postulante no le dice nada.
-  const referenciaLegible = mpPaymentId
-    ? `MercadoPago · Op. ${mpPaymentId}`
-    : !voucherUrl
-    ? null
-    : voucherUrl.startsWith("SIM-")
-    ? voucherUrl
-    : "Voucher bancario adjunto";
+  const referenciaLegible =
+    referenciaPago ?? (voucherUrl ? "Voucher bancario adjunto" : null);
 
   const filaPago = referenciaLegible
     ? `<tr style="background:#f9f9f9;">

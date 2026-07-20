@@ -378,7 +378,11 @@ export default function AuditoriaPage({ params }: Props) {
                 },
                 {
                   key: "voucher",
-                  label: "Comprobante de Pago",
+                  // La referencia del cobro se muestra junto al documento para
+                  // que el revisor pueda contrastarla sin abrir la boleta.
+                  label: postulacion.referenciaPago
+                    ? `Comprobante de Pago · ${postulacion.referenciaPago}`
+                    : "Comprobante de Pago",
                   url: postulacion.voucherUrl,
                   estado: estadoVoucher,
                   setEstado: setEstadoVoucher,

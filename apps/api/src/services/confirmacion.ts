@@ -20,14 +20,80 @@ function fechaHora() {
 }
 
 /**
- * Datos de la boleta para pagos registrados en ventanilla o simulados, cuya
- * referencia viene codificada en voucherUrl como SIM-{banco}-{numOp}-{codigo}.
+ * Descompone la referencia de un pago registrado en ventanilla o simulado.
+ * Formato: SIM-{banco}-{numOp}-{codigo}; el cobro en efectivo llega como
+ * SIM-EFECTIVO-VNT-{timestamp}.
  */
-function datosBoletaSimulada(voucherUrl: string | null) {
-  if (!voucherUrl?.startsWith("SIM-")) return null;
-  const parts = voucherUrl.split("-");
+function datosBoletaSimulada(referencia: string | null) {
+  if (!referencia?.startsWith("SIM-")) return null;
+  const parts = referencia.split("-");
   if (parts.length < 4) return null;
-  return { banco: parts[1], numOp: `${parts[1]}-${parts[2]}`, codigoVoucher: parts[3] };
+  const esEfectivo = parts[1] === "EFECTIVO";
+  return {
+    banco: esEfectivo ? "Efectivo — Ventanilla CIP" : parts[1],
+    numOp: esEfectivo ? `VNT-${parts[3]}` : `${parts[1]}-${parts[2]}`,
+    codigoVoucher: parts[3],
+  };
+}
+
+/**
+ * Registra un pago cobrado en ventanilla (efectivo o voucher simulado).
+ *
+ * Igual que con MercadoPago, emite la boleta en PDF y la guarda en `voucherUrl`
+ * para que cuente como Comprobante de Pago en la auditoría: antes ese campo
+ * quedaba con el texto SIM-EFECTIVO-... y el revisor no tenía nada que abrir.
+ */
+export async function registrarPagoVentanilla(
+  postulacionId: number,
+  referencia: string
+): Promise<void> {
+  const p = await prisma.postulacion.findUnique({ where: { id: postulacionId } });
+  if (!p) return;
+
+  const datos = datosBoletaSimulada(referencia);
+  const { fecha, hora } = fechaHora();
+  let comprobanteUrl: string | null = null;
+  let pdf: Buffer | undefined;
+
+  if (datos) {
+    try {
+      pdf = await generarBoletaPDF({
+        nombreCompleto: `${p.apellidoPaterno} ${p.apellidoMaterno}, ${p.nombres}`,
+        dni: p.dni,
+        monto: MONTO_INSCRIPCION,
+        ...datos,
+        numeroBoleta: numeroBoleta(),
+        fecha,
+        hora,
+      });
+      comprobanteUrl = await subirArchivo(pdf, "boletas", "image");
+    } catch (err) {
+      // El cobro ya ocurrió en caja: se conserva la referencia para no perderlo.
+      console.error(`[Boleta] No se pudo emitir el comprobante de #${postulacionId}:`, err);
+    }
+  }
+
+  await prisma.postulacion.update({
+    where: { id: postulacionId },
+    data: {
+      voucherUrl: comprobanteUrl ?? referencia,
+      referenciaPago: datos ? `${datos.banco} · Op. ${datos.numOp}` : referencia,
+    },
+  });
+
+  await enviarConfirmacionInscripcion(p.gmail, {
+    postulacionId: p.id,
+    nombres: p.nombres,
+    apellidoPaterno: p.apellidoPaterno,
+    apellidoMaterno: p.apellidoMaterno,
+    dni: p.dni,
+    voucherUrl: comprobanteUrl ?? referencia,
+    referenciaPago: datos ? `${datos.banco} · Op. ${datos.numOp}` : referencia,
+    pagoConfirmado: true,
+    pdfBuffer: pdf,
+  }).catch((err) =>
+    console.error(`[Email] Error al confirmar pago de #${postulacionId}:`, err?.message ?? err)
+  );
 }
 
 /**
@@ -78,6 +144,7 @@ export async function registrarPagoInscripcion(
     data: {
       voucherUrl: comprobanteUrl ?? `mp:${paymentId}`,
       mpPaymentId: paymentId,
+      referenciaPago: `MercadoPago · Op. ${paymentId}`,
     },
   });
 
@@ -97,21 +164,6 @@ export async function enviarConfirmacionDePago(postulacionId: number): Promise<v
   const p = await prisma.postulacion.findUnique({ where: { id: postulacionId } });
   if (!p) return;
 
-  let pdfBuffer: Buffer | undefined;
-  const sim = datosBoletaSimulada(p.voucherUrl);
-  if (sim) {
-    const { fecha, hora } = fechaHora();
-    pdfBuffer = await generarBoletaPDF({
-      nombreCompleto: `${p.apellidoPaterno} ${p.apellidoMaterno}, ${p.nombres}`,
-      dni: p.dni,
-      monto: MONTO_INSCRIPCION,
-      ...sim,
-      numeroBoleta: numeroBoleta(),
-      fecha,
-      hora,
-    });
-  }
-
   await enviarConfirmacionInscripcion(p.gmail, {
     postulacionId: p.id,
     nombres: p.nombres,
@@ -119,7 +171,8 @@ export async function enviarConfirmacionDePago(postulacionId: number): Promise<v
     apellidoMaterno: p.apellidoMaterno,
     dni: p.dni,
     voucherUrl: p.voucherUrl ?? undefined,
-    mpPaymentId: p.mpPaymentId ?? undefined,
-    pdfBuffer,
+    referenciaPago: p.referenciaPago ?? undefined,
+    // Un voucher bancario suelto todavía lo tiene que verificar el revisor.
+    pagoConfirmado: Boolean(p.mpPaymentId || p.referenciaPago),
   });
 }

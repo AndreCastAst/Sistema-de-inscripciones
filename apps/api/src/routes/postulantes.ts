@@ -4,7 +4,7 @@ import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { consultarDNI } from "../services/reniec";
 import { firmarUrl } from "../services/cloudinary";
-import { enviarConfirmacionDePago } from "../services/confirmacion";
+import { enviarConfirmacionDePago, registrarPagoVentanilla } from "../services/confirmacion";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -102,11 +102,16 @@ router.post("/", validate(postulacionSchema), async (req, res, next) => {
       },
     });
 
-    // La confirmación con la boleta solo se envía si el pago ya está resuelto
-    // (efectivo, voucher bancario). Con MercadoPago el expediente nace sin pago
-    // y el correo lo dispara la confirmación del cobro, no este alta: avisar
-    // acá le anunciaría al postulante un pago que todavía no ocurrió.
-    if (postulacion.voucherUrl) {
+    // Con MercadoPago el expediente nace sin pago y el correo lo dispara la
+    // confirmación del cobro; avisar acá anunciaría un pago que no ocurrió.
+    const ref = postulacion.voucherUrl;
+    if (ref?.startsWith("SIM-")) {
+      // Cobro en ventanilla: se emite la boleta y queda como comprobante.
+      registrarPagoVentanilla(postulacion.id, ref).catch((err) =>
+        console.error(`[Boleta] Error al emitir comprobante de #${postulacion.id}:`, err?.message ?? err)
+      );
+    } else if (ref) {
+      // Voucher bancario ya adjunto por el postulante.
       enviarConfirmacionDePago(postulacion.id).catch((err) =>
         console.error(`[Email] Error al enviar confirmación a ${postulacion.gmail}:`, err?.message ?? err)
       );
