@@ -303,16 +303,28 @@ router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutS
     const interesCobrado = Math.round(interes * 100) / 100;
     const totalCobrado = Math.round((cuotas.length * CUOTA_BASE + interesCobrado) * 100) / 100;
 
+    // Mismo criterio que en la inscripción: `payer` describe a quien paga.
+    //
+    // Este endpoint sirve al carnet público y a la ventanilla. Sin sesión es el
+    // propio colegiado consultando su deuda, y declarar su identidad mejora el
+    // puntaje de riesgo. Con sesión el cobro lo opera un cajero y paga quien
+    // esté en el mostrador, así que declarar al colegiado presentaría una
+    // identidad que no corresponde al pagador real.
+    const enSede = Boolean(req.usuario);
+    const pagador = enSede
+      ? { email: colegiado.gmail }
+      : {
+          email: colegiado.gmail,
+          nombres: colegiado.nombres,
+          apellidos: `${colegiado.apellidoPaterno} ${colegiado.apellidoMaterno}`.trim(),
+          dni: colegiado.dni,
+        };
+
     const preferencia = await crearPreferenciaMensualidades(
       colegiado.id,
       cuotas.map((c) => ({ periodo: c.periodo, monto: CUOTA_BASE })),
       interesCobrado,
-      {
-        email: colegiado.gmail,
-        nombres: colegiado.nombres,
-        apellidos: `${colegiado.apellidoPaterno} ${colegiado.apellidoMaterno}`.trim(),
-        dni: colegiado.dni,
-      }
+      pagador
     );
 
     res.json({
