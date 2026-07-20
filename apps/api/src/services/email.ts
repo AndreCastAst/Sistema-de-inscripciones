@@ -53,14 +53,27 @@ export async function enviarConfirmacionInscripcion(
 ) {
   const { postulacionId, nombres, apellidoPaterno, apellidoMaterno, dni, voucherUrl, pdfBuffer } = datos;
   const nombreCompleto = `${apellidoPaterno} ${apellidoMaterno}, ${nombres}`;
-  const esPasarela = voucherUrl?.startsWith("SIM-");
+  // "mp:" = cobro real confirmado por MercadoPago; "SIM-" = pago en ventanilla
+  // o simulado. Ambos son pagos ya resueltos; un enlace http es un voucher
+  // bancario que el revisor todavía tiene que verificar.
+  const esPasarela = voucherUrl?.startsWith("SIM-") || voucherUrl?.startsWith("mp:");
   const fecha = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
   const hora  = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 
-  const filaPago = voucherUrl
+  // La referencia interna no se muestra cruda: un voucher bancario es una URL
+  // larga de Cloudinary que al postulante no le dice nada.
+  const referenciaLegible = !voucherUrl
+    ? null
+    : voucherUrl.startsWith("mp:")
+    ? `MercadoPago · Op. ${voucherUrl.slice(3)}`
+    : voucherUrl.startsWith("SIM-")
+    ? voucherUrl
+    : "Voucher bancario adjunto";
+
+  const filaPago = referenciaLegible
     ? `<tr style="background:#f9f9f9;">
          <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;">Referencia de Pago</td>
-         <td style="padding:10px 12px;border:1px solid #e0e0e0;font-family:monospace;font-size:12px;">${voucherUrl}</td>
+         <td style="padding:10px 12px;border:1px solid #e0e0e0;font-family:monospace;font-size:12px;">${referenciaLegible}</td>
        </tr>`
     : "";
 

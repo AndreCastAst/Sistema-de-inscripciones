@@ -9,6 +9,7 @@ import {
   parseRefMensualidades,
   obtenerPago,
 } from "../services/mercadopago";
+import { enviarConfirmacionDePago } from "../services/confirmacion";
 import {
   calcularEstadoCuenta,
   calcularMontoPeriodos,
@@ -179,6 +180,10 @@ router.post("/inscripcion/:id/confirmar", validate(confirmarSchema), async (req,
         detalle: `PaymentId: ${paymentId} | Confirmado al retornar`,
       },
     });
+
+    // El expediente ya tenía voucherUrl null al entrar (se verifica arriba), así
+    // que este es el único punto que confirma el pago: el correo sale una vez.
+    await enviarConfirmacionDePago(id).catch(console.error);
 
     res.json({ pagado: true, referencia: `mp:${paymentId}` });
   } catch (err) {
@@ -410,6 +415,9 @@ router.post("/notificacion", async (req, res) => {
           detalle: `PaymentId: ${paymentId} | Monto: ${pago.transaction_amount ?? "?"}`,
         },
       });
+
+      // Recién ahora el postulante recibe la confirmación con su boleta.
+      await enviarConfirmacionDePago(postulacionId).catch(console.error);
     } else if (referencia.startsWith("mensualidades|")) {
       const ref = parseRefMensualidades(referencia);
       if (ref) await registrarMensualidadesPagadas(ref.colegiadoId, ref.periodos, paymentId);

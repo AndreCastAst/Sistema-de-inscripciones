@@ -4,8 +4,7 @@ import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { consultarDNI } from "../services/reniec";
 import { firmarUrl } from "../services/cloudinary";
-import { enviarConfirmacionInscripcion } from "../services/email";
-import { generarBoletaPDF } from "../services/pdf";
+import { enviarConfirmacionDePago } from "../services/confirmacion";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -103,43 +102,15 @@ router.post("/", validate(postulacionSchema), async (req, res, next) => {
       },
     });
 
-    // Enviar confirmación por email con PDF adjunto (no-blocking)
-    (async () => {
-      try {
-        let pdfBuffer: Buffer | undefined;
-        const vu = postulacion.voucherUrl;
-        if (vu?.startsWith("SIM-")) {
-          const parts = vu.split("-");
-          if (parts.length >= 4) {
-            const banco = parts[1];
-            const numOp = `${parts[1]}-${parts[2]}`;
-            const codigoVoucher = parts[3];
-            pdfBuffer = await generarBoletaPDF({
-              nombreCompleto: `${postulacion.apellidoPaterno} ${postulacion.apellidoMaterno}, ${postulacion.nombres}`,
-              dni: postulacion.dni,
-              monto: 3,
-              banco,
-              numOp,
-              codigoVoucher,
-              numeroBoleta: String(Math.floor(1000000 + Math.random() * 9000000)).padStart(8, "0"),
-              fecha: new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" }),
-              hora: new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }),
-            });
-          }
-        }
-        await enviarConfirmacionInscripcion(postulacion.gmail, {
-          postulacionId: postulacion.id,
-          nombres: postulacion.nombres,
-          apellidoPaterno: postulacion.apellidoPaterno,
-          apellidoMaterno: postulacion.apellidoMaterno,
-          dni: postulacion.dni,
-          voucherUrl: postulacion.voucherUrl ?? undefined,
-          pdfBuffer,
-        });
-      } catch (err: any) {
-        console.error(`[Email] Error al enviar confirmación a ${postulacion.gmail}:`, err?.message ?? err);
-      }
-    })();
+    // La confirmación con la boleta solo se envía si el pago ya está resuelto
+    // (efectivo, voucher bancario). Con MercadoPago el expediente nace sin pago
+    // y el correo lo dispara la confirmación del cobro, no este alta: avisar
+    // acá le anunciaría al postulante un pago que todavía no ocurrió.
+    if (postulacion.voucherUrl) {
+      enviarConfirmacionDePago(postulacion.id).catch((err) =>
+        console.error(`[Email] Error al enviar confirmación a ${postulacion.gmail}:`, err?.message ?? err)
+      );
+    }
 
     res.status(201).json(postulacion);
   } catch (err) {
