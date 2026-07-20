@@ -292,15 +292,6 @@ export default function SubsanacionAdminPage() {
                 </div>
               </div>
 
-              {/* La carga queda a nombre del admin: conviene que lo sepa */}
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-md flex items-start gap-sm text-[13px] text-on-surface-variant">
-                <span className="material-symbols-outlined text-primary shrink-0">shield_person</span>
-                <span>
-                  Los documentos se registran a nombre del postulante, pero la operación queda
-                  asociada a tu usuario en la auditoría del expediente.
-                </span>
-              </div>
-
               {errorEnvio && (
                 <div className="bg-error-container border border-error/20 text-error rounded-lg px-md py-sm flex items-start gap-sm text-[14px]">
                   <span className="material-symbols-outlined shrink-0">error</span>

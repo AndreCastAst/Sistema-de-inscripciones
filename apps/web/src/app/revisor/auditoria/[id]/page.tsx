@@ -251,6 +251,41 @@ export default function AuditoriaPage({ params }: Props) {
     return "text-on-surface-variant";
   }
 
+  /**
+   * Cómo se pagó el expediente, deducido de los campos que ya devuelve el API.
+   *
+   * Importa distinguirlos porque solo uno exige acción del revisor: un cobro por
+   * pasarela o en caja ya está confirmado, mientras que un voucher bancario
+   * suelto es un depósito que todavía hay que verificar contra el banco. Antes
+   * los tres se veían igual.
+   */
+  function medioDePago(): { texto: string; detalle: string | null; confirmado: boolean } | null {
+    const { mpPaymentId, referenciaPago, voucherUrl } = postulacion!;
+
+    if (mpPaymentId) {
+      return {
+        texto: "Pagado con pasarela",
+        detalle: referenciaPago ?? `MercadoPago · Op. ${mpPaymentId}`,
+        confirmado: true,
+      };
+    }
+    if (referenciaPago) {
+      return {
+        texto: referenciaPago.startsWith("Efectivo") ? "Pagado en ventanilla" : "Pago registrado",
+        detalle: referenciaPago,
+        confirmado: true,
+      };
+    }
+    if (voucherUrl) {
+      return {
+        texto: "Voucher por verificar",
+        detalle: "Depósito adjuntado por el postulante",
+        confirmado: false,
+      };
+    }
+    return null;
+  }
+
   // Cloudinary bloquea entrega de PDFs; convierte a JPEG para visualizar
   function obtenerUrlVisor(url: string): string | null {
     if (!url) return null;
@@ -386,19 +421,18 @@ export default function AuditoriaPage({ params }: Props) {
                   url: postulacion.tituloUrl,
                   estado: estadoTitulo,
                   setEstado: setEstadoTitulo,
+                  pago: null,
                 },
                 {
                   key: "voucher",
-                  // La referencia del cobro se muestra junto al documento para
-                  // que el revisor pueda contrastarla sin abrir la boleta.
-                  label: postulacion.referenciaPago
-                    ? `Comprobante de Pago · ${postulacion.referenciaPago}`
-                    : "Comprobante de Pago",
+                  label: "Comprobante de Pago",
                   url: postulacion.voucherUrl,
                   estado: estadoVoucher,
                   setEstado: setEstadoVoucher,
+                  // Solo el comprobante lleva franja de medio de pago.
+                  pago: medioDePago(),
                 },
-              ].map(({ key, label, url, estado, setEstado }) => (
+              ].map(({ key, label, url, estado, setEstado, pago }) => (
                 <div key={key} className="flex-1 flex flex-col">
                   {/* Toolbar del documento */}
                   <div className="h-10 bg-surface-container-highest border-b border-outline-variant flex items-center justify-between px-md shrink-0">
@@ -443,6 +477,43 @@ export default function AuditoriaPage({ params }: Props) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Franja de medio de pago (solo el comprobante) */}
+                  {pago && (
+                    <div
+                      className={`flex items-center gap-sm px-md py-sm border-b border-outline-variant shrink-0 ${
+                        pago.confirmado
+                          ? "bg-status-aprobado-bg"
+                          : "bg-status-observado-bg"
+                      }`}
+                    >
+                      <span
+                        className={`material-symbols-outlined text-lg shrink-0 ${
+                          pago.confirmado ? "text-status-aprobado-text" : "text-status-observado-text"
+                        }`}
+                        style={pago.confirmado ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                      >
+                        {pago.confirmado ? "verified" : "pending_actions"}
+                      </span>
+                      <div className="min-w-0">
+                        <p
+                          className={`text-[13px] font-semibold leading-tight ${
+                            pago.confirmado
+                              ? "text-status-aprobado-text"
+                              : "text-status-observado-text"
+                          }`}
+                        >
+                          {pago.texto}
+                        </p>
+                        {pago.detalle && (
+                          <p className="text-[12px] text-on-surface-variant truncate">
+                            {pago.detalle}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Visor del documento */}
                   <div className="relative bg-surface-container-low h-[420px] flex items-center justify-center overflow-hidden">
                     {url ? (() => {
@@ -465,9 +536,15 @@ export default function AuditoriaPage({ params }: Props) {
                           >
                             sync_problem
                           </span>
-                          <p className="text-[14px] font-medium text-on-surface">Vista previa no disponible</p>
-                          <p className="text-[12px] text-on-surface-variant max-w-[220px]">
-                            El documento fue cargado en un formato anterior. El postulante debe re-enviar la solicitud.
+                          <p className="text-[14px] font-medium text-on-surface">
+                            {pago?.confirmado ? "Boleta no disponible" : "Vista previa no disponible"}
+                          </p>
+                          <p className="text-[12px] text-on-surface-variant max-w-[240px]">
+                            {/* Con el pago confirmado, pedirle al postulante que reenvíe
+                                sería un consejo falso: lo que falló fue emitir la boleta. */}
+                            {pago?.confirmado
+                              ? `El pago está confirmado, pero no se pudo emitir la boleta. Verifícalo con la operación ${pago.detalle}.`
+                              : "El documento fue cargado en un formato anterior. El postulante debe re-enviar la solicitud."}
                           </p>
                         </div>
                       );
