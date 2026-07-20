@@ -9,7 +9,13 @@ import {
   parseRefMensualidades,
   obtenerPago,
 } from "../services/mercadopago";
-import { calcularEstadoCuenta, calcularMontoPeriodos, CUOTA_BASE } from "../services/cuenta";
+import {
+  calcularEstadoCuenta,
+  calcularMontoPeriodos,
+  calcularMontoPorCantidad,
+  CUOTA_BASE,
+  MAX_MESES_ADELANTO,
+} from "../services/cuenta";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -71,12 +77,12 @@ router.get("/:query", optionalAuth, async (req, res, next) => {
       return res.status(403).json({ error: "Este colegiado pertenece a otra sede" });
     }
 
-    const { mensualidades, totalDeuda, totalMora, moraPorcentaje } = await calcularEstadoCuenta(
-      colegiado.id,
-      new Date(colegiado.fechaAlta)
-    );
+    const { mensualidades, adelantables, totalDeuda, totalMora, moraPorcentaje } =
+      await calcularEstadoCuenta(colegiado.id, new Date(colegiado.fechaAlta));
 
     res.json({
+      adelantables,
+      maxMesesAdelanto: MAX_MESES_ADELANTO,
       colegiado: {
         nombres: colegiado.nombres,
         apellidoPaterno: colegiado.apellidoPaterno,
@@ -230,16 +236,24 @@ router.post("/voucher", validate(voucherSchema), async (req, res, next) => {
 
 // ─── PAGO DE MENSUALIDADES ────────────────────────────────────────────────────
 
-const mensualidadCheckoutSchema = z.object({
-  codigo: z.string().min(1),
-  periodos: z.array(z.string().regex(/^\d{4}-\d{2}$/)).min(1, "Selecciona al menos un periodo"),
-});
+// Se acepta una cantidad de cuotas (se toman las más antiguas primero) o la
+// lista explícita de periodos, que debe ser un tramo contiguo desde la más
+// antigua: dejar huecos haría que la deuda vieja siga acumulando interés.
+const mensualidadCheckoutSchema = z
+  .object({
+    codigo: z.string().min(1),
+    cantidad: z.number().int().positive().optional(),
+    periodos: z.array(z.string().regex(/^\d{4}-\d{2}$/)).optional(),
+  })
+  .refine((d) => d.cantidad !== undefined || (d.periodos?.length ?? 0) > 0, {
+    message: "Indica cuántas cuotas pagar",
+  });
 
 // POST /api/v1/pagos/mensualidad/checkout — una preferencia para todos los
 // periodos elegidos, con la mora incluida.
 router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutSchema), async (req, res, next) => {
   try {
-    const { codigo, periodos } = req.body;
+    const { codigo, cantidad, periodos } = req.body;
     const colegiado = await prisma.colegiado.findUniqueOrThrow({ where: { codigo } });
 
     if (fueraDeSedeCajero(req, colegiado.regionId)) {
@@ -249,16 +263,36 @@ router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutS
     // El monto se calcula acá, nunca se recibe del cliente: si no, cualquiera
     // podría fijar el precio de su propia deuda.
     const estado = await calcularEstadoCuenta(colegiado.id, new Date(colegiado.fechaAlta));
-    const { cuotas, mora, total } = calcularMontoPeriodos(estado, periodos);
+
+    let cuotas, interes, total;
+    if (cantidad !== undefined) {
+      ({ cuotas, interes, total } = calcularMontoPorCantidad(estado, cantidad));
+    } else {
+      const r = calcularMontoPeriodos(estado, periodos);
+      if (!r.contiguo) {
+        return res.status(400).json({
+          error: "Debes pagar las cuotas en orden, desde la más antigua y sin saltear meses",
+        });
+      }
+      ({ cuotas, interes, total } = r);
+    }
 
     if (cuotas.length === 0) {
       return res.status(400).json({ error: "Los periodos indicados ya están pagados o no existen" });
     }
+    const mora = interes;
+
+    // Al pagador se le muestran las cuotas a valor base y el interés en una
+    // línea aparte: el monto por cuota lleva el interés incorporado y sumarlo
+    // otra vez como ítem lo cobraría dos veces. El total se deriva de los
+    // ítems para que coincida exactamente con lo que cobra MercadoPago.
+    const interesCobrado = Math.round(interes * 100) / 100;
+    const totalCobrado = Math.round((cuotas.length * CUOTA_BASE + interesCobrado) * 100) / 100;
 
     const preferencia = await crearPreferenciaMensualidades(
       colegiado.id,
-      cuotas.map((c) => ({ periodo: c.periodo, monto: c.monto })),
-      mora,
+      cuotas.map((c) => ({ periodo: c.periodo, monto: CUOTA_BASE })),
+      interesCobrado,
       {
         email: colegiado.gmail,
         nombres: colegiado.nombres,
@@ -267,7 +301,13 @@ router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutS
       }
     );
 
-    res.json({ ...preferencia, total, mora, periodos: cuotas.map((c) => c.periodo) });
+    res.json({
+      ...preferencia,
+      total: totalCobrado,
+      mora: interesCobrado,
+      periodos: cuotas.map((c) => c.periodo),
+      adelantos: cuotas.filter((c) => c.antiguedad < 0).length,
+    });
   } catch (err) {
     next(err);
   }

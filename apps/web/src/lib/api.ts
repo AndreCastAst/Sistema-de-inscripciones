@@ -55,6 +55,18 @@ export async function buscarColegiado(query: string): Promise<CarnetData> {
   return data;
 }
 
+export interface CuotaCuenta {
+  id: number | null;
+  periodo: string;
+  monto: number;
+  vencido: boolean;
+  pagadoEn: string | null;
+  /** Meses transcurridos desde el periodo; negativo si es un adelanto. */
+  antiguedad: number;
+  /** Interés compuesto ya incluido en `monto`. */
+  interes: number;
+}
+
 export interface EstadoCuenta {
   colegiado: {
     nombres: string;
@@ -64,16 +76,31 @@ export interface EstadoCuenta {
     gmail: string;
     carrera: { nombre: string };
   };
-  mensualidades: Array<{
-    id: number;
-    periodo: string;
-    monto: number;
-    vencido: boolean;
-    pagadoEn: string | null;
-  }>;
+  mensualidades: CuotaCuenta[];
+  /** Cuotas futuras que se pueden adelantar sin interés. */
+  adelantables: CuotaCuenta[];
+  maxMesesAdelanto: number;
   totalDeuda: number;
   totalMora: number;
   moraPorcentaje: number;
+}
+
+/**
+ * Cuotas pagables en orden: primero la deuda de la más antigua a la más
+ * reciente, después los adelantos. Se paga siempre un tramo desde el inicio.
+ */
+export function cuotasPagables(cuenta: EstadoCuenta): CuotaCuenta[] {
+  const pendientes = cuenta.mensualidades.filter((m) => m.pagadoEn === null);
+  return [...pendientes, ...(cuenta.adelantables ?? [])];
+}
+
+/** Total de las primeras `cantidad` cuotas pagables. */
+export function totalPorCantidad(cuenta: EstadoCuenta, cantidad: number) {
+  const cuotas = cuotasPagables(cuenta).slice(0, Math.max(0, cantidad));
+  const total = Math.round(cuotas.reduce((s, m) => s + m.monto, 0) * 100) / 100;
+  const interes = Math.round(cuotas.reduce((s, m) => s + m.interes, 0) * 100) / 100;
+  const adelantos = cuotas.filter((m) => m.antiguedad < 0).length;
+  return { cuotas, total, interes, adelantos };
 }
 
 export async function obtenerEstadoCuenta(query: string): Promise<EstadoCuenta> {
@@ -157,9 +184,9 @@ export interface PreferenciaMensualidades extends PreferenciaPago {
  */
 export async function crearCheckoutMensualidades(
   codigo: string,
-  periodos: string[]
+  seleccion: { cantidad: number } | { periodos: string[] }
 ): Promise<PreferenciaMensualidades> {
-  const { data } = await api.post("/pagos/mensualidad/checkout", { codigo, periodos });
+  const { data } = await api.post("/pagos/mensualidad/checkout", { codigo, ...seleccion });
   return data;
 }
 
@@ -265,4 +292,19 @@ export async function subsanarPostulacion(
   body: { fotoUrl?: string; tituloUrl?: string; voucherUrl?: string }
 ): Promise<void> {
   await api.patch(`/postulantes/${id}`, body);
+}
+
+// ─── Subsanación por enlace del correo ───────────────────────────────────────
+
+/** Abre el expediente desde el enlace único, sin pedir DNI. */
+export async function getSubsanacionPorToken(token: string): Promise<PostulacionDetalle> {
+  const { data } = await api.get(`/postulantes/subsanacion/${token}`);
+  return data;
+}
+
+export async function subsanarPorToken(
+  token: string,
+  body: { fotoUrl?: string; tituloUrl?: string; voucherUrl?: string }
+): Promise<void> {
+  await api.patch(`/postulantes/subsanacion/${token}`, body);
 }

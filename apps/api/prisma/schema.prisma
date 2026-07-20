@@ -37,6 +37,10 @@ model Postulacion {
   voucherUrl      String?
   estado          EstadoPostulacion @default(PENDIENTE)
   esFisico        Boolean           @default(false)
+  // Token de un solo uso para la pantalla de subsanación enviada por correo.
+  // Evita que el postulante tenga que identificarse con su DNI: el enlace ya
+  // apunta a su expediente. Se renueva en cada observación y se anula al subsanar.
+  tokenSubsanacion String?          @unique
   regionId        Int
   carreraId       Int?
   region          Region            @relation(fields: [regionId], references: [id])

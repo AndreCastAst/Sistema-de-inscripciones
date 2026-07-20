@@ -167,6 +167,35 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
+// GET /api/v1/postulantes/subsanacion/:token — abre el expediente desde el
+// enlace del correo, sin pedir DNI. Devuelve solo lo necesario para la pantalla.
+router.get("/subsanacion/:token", async (req, res, next) => {
+  try {
+    const postulacion = await prisma.postulacion.findUnique({
+      where: { tokenSubsanacion: req.params.token },
+      include: {
+        region: true,
+        carrera: true,
+        observaciones: { orderBy: { creadoEn: "desc" }, take: 5 },
+      },
+    });
+
+    if (!postulacion) {
+      return res.status(404).json({ error: "Este enlace no es válido o ya fue utilizado" });
+    }
+    if (postulacion.estado !== "OBSERVADO") {
+      return res.status(409).json({
+        error: "Este expediente ya no requiere subsanación",
+        estado: postulacion.estado,
+      });
+    }
+
+    res.json(postulacion);
+  } catch (err) {
+    next(err);
+  }
+});
+
 const subsanacionSchema = z.object({
   fotoUrl: z.string().url().optional(),
   tituloUrl: z.string().url().optional(),
@@ -176,10 +205,29 @@ const subsanacionSchema = z.object({
   { message: "Debe enviar al menos un documento para subsanar" }
 );
 
-// PATCH /api/v1/postulantes/:id — subsanación de documentos observados
-router.patch("/:id", validate(subsanacionSchema), async (req, res, next) => {
+// PATCH /api/v1/postulantes/subsanacion/:token — subsanación desde el enlace
+// del correo. Misma lógica que por id, pero identificando por token.
+router.patch("/subsanacion/:token", validate(subsanacionSchema), async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const actual = await prisma.postulacion.findUnique({
+      where: { tokenSubsanacion: req.params.token },
+    });
+    if (!actual) {
+      return res.status(404).json({ error: "Este enlace no es válido o ya fue utilizado" });
+    }
+    return aplicarSubsanacion(actual.id, req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/postulantes/:id — subsanación de documentos observados
+router.patch("/:id", validate(subsanacionSchema), async (req, res, next) =>
+  aplicarSubsanacion(Number(req.params.id), req, res, next)
+);
+
+async function aplicarSubsanacion(id: number, req: any, res: any, next: any) {
+  try {
     const actual = await prisma.postulacion.findUniqueOrThrow({ where: { id } });
 
     if (actual.estado !== "OBSERVADO") {
@@ -226,6 +274,9 @@ router.patch("/:id", validate(subsanacionSchema), async (req, res, next) => {
         ...(tituloUrl && { tituloUrl }),
         ...(voucherUrl && { voucherUrl }),
         estado: "SUBSANADO",
+        // El enlace del correo queda inutilizable: ya cumplió su propósito y no
+        // debe permitir reemplazar documentos de un expediente ya reenviado.
+        tokenSubsanacion: null,
       },
     });
 
@@ -241,6 +292,6 @@ router.patch("/:id", validate(subsanacionSchema), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+}
 
 export { router as postulanteRoutes };

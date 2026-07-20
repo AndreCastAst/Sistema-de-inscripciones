@@ -7,7 +7,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import {
   buscarColegiado,
   obtenerEstadoCuenta,
-  desglosarDeuda,
+  cuotasPagables,
+  totalPorCantidad,
   crearCheckoutMensualidades,
   confirmarPagoMensualidades,
   api,
@@ -94,17 +95,32 @@ function PanelDeudaYPago({
   const cuotasPendientes = cuenta?.mensualidades.filter((m) => m.pagadoEn === null) ?? [];
 
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("online");
-  const [alcancePago, setAlcancePago] = useState<"vencidas" | "todas">("vencidas");
+  // Cuántas cuotas pagar, siempre desde la más antigua. Arranca cubriendo toda
+  // la deuda vencida, que es el caso habitual.
+  const [cantidadCuotas, setCantidadCuotas] = useState(0);
   const [procesando, setProcesando] = useState(false);
   const [exitoPago, setExitoPago] = useState(false);
   const [errorPago, setErrorPago] = useState<string | null>(null);
 
-  const desglose = cuenta ? desglosarDeuda(cuenta) : null;
-  const mostrarAlcance = !!desglose && desglose.vencidas.length > 0 && desglose.actual.length > 0;
-  const soloVencidas = mostrarAlcance && alcancePago === "vencidas";
-  const cuotasIncluidas = soloVencidas ? desglose!.vencidas : cuotasPendientes;
+  const pagables = cuenta ? cuotasPagables(cuenta) : [];
+  const vencidasCount = pagables.filter((m) => m.antiguedad > 0).length;
+  const deudaCount = pagables.filter((m) => m.antiguedad >= 0).length;
+
+  // Al cargar la cuenta se preselecciona toda la deuda vencida.
+  useEffect(() => {
+    if (cuenta) setCantidadCuotas(vencidasCount || (deudaCount ? 1 : 0));
+  }, [cuenta, vencidasCount, deudaCount]);
+
+  const vencidas = pagables.filter((m) => m.antiguedad > 0);
+  const primeraVencida = vencidas[0] ?? null;
+  const deudaVencidaTotal = Math.round(vencidas.reduce((s, m) => s + m.monto, 0) * 100) / 100;
+
+  const seleccion = cuenta ? totalPorCantidad(cuenta, cantidadCuotas) : null;
+  const cuotasIncluidas = seleccion?.cuotas ?? [];
   const periodosAPagar = cuotasIncluidas.map((m) => m.periodo);
-  const totalAPagar = !desglose ? 0 : soloVencidas ? desglose.totalSoloVencida : desglose.totalConActual;
+  const totalAPagar = seleccion?.total ?? 0;
+  const interesIncluido = seleccion?.interes ?? 0;
+  const adelantosIncluidos = seleccion?.adelantos ?? 0;
 
   const voucherRef = useRef<HTMLInputElement>(null);
   const [voucherEstado, setVoucherEstado] = useState<"idle" | "subiendo" | "listo" | "error">("idle");
@@ -149,7 +165,7 @@ function PanelDeudaYPago({
     setProcesando(true);
     setErrorPago(null);
     try {
-      const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, periodosAPagar);
+      const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, { periodos: periodosAPagar });
       window.location.href = pref.init_point;
     } catch {
       setErrorPago("No se pudo iniciar el pago. Intenta de nuevo en unos minutos.");
@@ -216,20 +232,20 @@ function PanelDeudaYPago({
           <div className={`rounded-lg px-md py-sm ${inhabilitado ? "bg-white/50" : "bg-white/60"}`}>
             <p className="text-[12px] text-on-surface-variant">Deuda vencida</p>
             <p className={`text-[17px] font-bold ${inhabilitado ? "text-status-rechazado-text" : "text-status-aprobado-text"}`}>
-              S/ {(desglose?.totalSoloVencida ?? 0).toFixed(2)}
+              S/ {deudaVencidaTotal.toFixed(2)}
             </p>
           </div>
           <div className={`rounded-lg px-md py-sm ${inhabilitado ? "bg-white/50" : "bg-white/60"}`}>
             <p className="text-[12px] text-on-surface-variant">Cuotas vencidas</p>
             <p className={`text-[17px] font-bold ${inhabilitado ? "text-status-rechazado-text" : "text-status-aprobado-text"}`}>
-              {desglose?.vencidas.length ?? 0} {(desglose?.vencidas.length ?? 0) === 1 ? "mes" : "meses"}
+              {vencidasCount} {vencidasCount === 1 ? "mes" : "meses"}
             </p>
           </div>
           <div className={`rounded-lg px-md py-sm col-span-2 sm:col-span-1 ${inhabilitado ? "bg-white/50" : "bg-white/60"}`}>
             <p className="text-[12px] text-on-surface-variant">Carné</p>
             <p className={`text-[15px] font-semibold ${inhabilitado ? "text-status-rechazado-text" : "text-status-aprobado-text"}`}>
               {inhabilitado
-                ? `Vencido desde ${desglose && desglose.vencidas.length > 0 ? formatPeriodo(desglose.vencidas[0].periodo) : "—"}`
+                ? `Vencido desde ${primeraVencida ? formatPeriodo(primeraVencida.periodo) : "—"}`
                 : "Vigente y válido"}
             </p>
           </div>
@@ -246,39 +262,93 @@ function PanelDeudaYPago({
             </span>
           </div>
 
-          {/* Alcance del pago */}
-          {mostrarAlcance && (
-            <div className="px-lg pt-md pb-sm border-b border-outline-variant">
-              <p className="text-[13px] font-semibold text-on-surface-variant mb-sm uppercase tracking-wide">
-                ¿Qué deseas pagar?
-              </p>
-              <div className="flex bg-surface-container-low p-1 rounded-lg">
-                {([
-                  { key: "vencidas" as const, label: "Solo deuda vencida" },
-                  { key: "todas" as const, label: "Incluir mes actual" },
-                ]).map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setAlcancePago(key)}
-                    className={`flex-1 py-sm rounded-md text-[13px] font-medium transition-all ${
-                      alcancePago === key
-                        ? "bg-surface-container-lowest text-primary font-semibold shadow-sm"
-                        : "text-on-surface-variant hover:bg-surface-container-lowest"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {soloVencidas && desglose!.actual.length > 0 && (
-                <p className="text-[12px] text-on-surface-variant mt-sm flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-base">info</span>
-                  El mes actual ({formatPeriodo(desglose!.actual[0].periodo)}) no está incluido; puedes agregarlo arriba.
+          {/* Cuántas cuotas pagar — siempre desde la más antigua */}
+          <div className="px-lg pt-md pb-md border-b border-outline-variant">
+            <p className="text-[13px] font-semibold text-on-surface-variant mb-sm uppercase tracking-wide">
+              ¿Cuántas cuotas deseas pagar?
+            </p>
+
+            <div className="flex items-center gap-md">
+              <button
+                type="button"
+                onClick={() => setCantidadCuotas((n) => Math.max(1, n - 1))}
+                disabled={cantidadCuotas <= 1}
+                className="w-11 h-11 shrink-0 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40"
+              >
+                <span className="material-symbols-outlined">remove</span>
+              </button>
+
+              <div className="flex-1 text-center">
+                <p className="text-[28px] font-bold text-primary tabular-nums leading-none">
+                  {cantidadCuotas}
                 </p>
+                <p className="text-[12px] text-on-surface-variant mt-xs">
+                  {cantidadCuotas === 1 ? "cuota" : "cuotas"} de {pagables.length} disponibles
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCantidadCuotas((n) => Math.min(pagables.length, n + 1))}
+                disabled={cantidadCuotas >= pagables.length}
+                className="w-11 h-11 shrink-0 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors disabled:opacity-40"
+              >
+                <span className="material-symbols-outlined">add</span>
+              </button>
+            </div>
+
+            <input
+              type="range"
+              min={1}
+              max={Math.max(1, pagables.length)}
+              value={cantidadCuotas}
+              onChange={(e) => setCantidadCuotas(Number(e.target.value))}
+              className="w-full mt-md accent-primary"
+            />
+
+            <div className="flex flex-wrap gap-xs mt-sm">
+              {vencidasCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCantidadCuotas(vencidasCount)}
+                  className="px-sm py-xs rounded-full border border-outline-variant text-[12px] text-on-surface-variant hover:bg-surface-container transition-colors"
+                >
+                  Solo lo vencido ({vencidasCount})
+                </button>
+              )}
+              {deudaCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCantidadCuotas(deudaCount)}
+                  className="px-sm py-xs rounded-full border border-outline-variant text-[12px] text-on-surface-variant hover:bg-surface-container transition-colors"
+                >
+                  Toda la deuda ({deudaCount})
+                </button>
               )}
             </div>
-          )}
+
+            {cuotasIncluidas.length > 0 && (
+              <p className="text-[12px] text-on-surface-variant mt-sm flex items-start gap-xs">
+                <span className="material-symbols-outlined text-base shrink-0">info</span>
+                <span>
+                  Pagarás desde <strong>{formatPeriodo(cuotasIncluidas[0].periodo)}</strong> hasta{" "}
+                  <strong>{formatPeriodo(cuotasIncluidas[cuotasIncluidas.length - 1].periodo)}</strong>.
+                  Las cuotas se pagan en orden, de la más antigua a la más reciente.
+                </span>
+              </p>
+            )}
+
+            {adelantosIncluidos > 0 && (
+              <p className="text-[12px] text-status-aprobado-text mt-xs flex items-start gap-xs">
+                <span className="material-symbols-outlined text-base shrink-0">savings</span>
+                <span>
+                  Incluye <strong>{adelantosIncluidos}</strong>{" "}
+                  {adelantosIncluidos === 1 ? "cuota adelantada" : "cuotas adelantadas"} — los
+                  adelantos no generan interés.
+                </span>
+              </p>
+            )}
+          </div>
 
           <table className="w-full text-left border-collapse">
             <thead>
@@ -302,17 +372,19 @@ function PanelDeudaYPago({
                 </tr>
               ))}
               <tr className="border-b border-outline-variant/50">
-                <td className="px-lg py-sm text-right text-on-surface-variant">Subtotal cuotas</td>
+                <td className="px-lg py-sm text-right text-on-surface-variant">
+                  Subtotal cuotas ({cuotasIncluidas.length} × S/ 1.00)
+                </td>
                 <td className="px-lg py-sm text-right tabular-nums text-on-surface-variant">
-                  S/ {(totalAPagar - (cuenta!.totalMora ?? 0)).toFixed(2)}
+                  S/ {(totalAPagar - interesIncluido).toFixed(2)}
                 </td>
               </tr>
               <tr className="border-b border-outline-variant/50">
                 <td className="px-lg py-sm text-right text-on-surface-variant">
-                  Mora ({cuenta!.moraPorcentaje ?? 0}% · 1% por mes vencido)
+                  Interés por atraso (1% mensual compuesto)
                 </td>
                 <td className="px-lg py-sm text-right tabular-nums text-status-observado-text">
-                  S/ {(cuenta!.totalMora ?? 0).toFixed(2)}
+                  S/ {interesIncluido.toFixed(2)}
                 </td>
               </tr>
               <tr className="bg-surface-dim">

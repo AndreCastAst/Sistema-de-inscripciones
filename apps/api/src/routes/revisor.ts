@@ -1,5 +1,6 @@
 import { Router, Request } from "express";
 import { PrismaClient } from "@prisma/client";
+import { randomBytes } from "crypto";
 import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { requireAuth, requireRole } from "../middlewares/auth";
@@ -43,8 +44,12 @@ router.get("/bandeja", async (req, res, next) => {
     const skip = (page - 1) * limit;
     const search = (req.query.search as string | undefined)?.trim();
 
-    const ESTADOS = ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO", "APROBADO", "RECHAZADO"];
+    // Un expediente aprobado ya cumplió su ciclo: se convirtió en colegiado y a
+    // partir de ahí se le cobran cuotas, no se le audita. Sale de la bandeja
+    // para que el revisor solo vea lo que tiene pendiente de resolver.
+    const ESTADOS = ["PENDIENTE", "EN_REVISION", "OBSERVADO", "SUBSANADO", "RECHAZADO"];
     const estadoParam = (req.query.estado as string | undefined)?.trim();
+    // Aunque se pida APROBADO explícitamente en el filtro, no se devuelve.
     const estado = estadoParam && ESTADOS.includes(estadoParam) ? estadoParam : undefined;
 
     // Rango de fechas por fecha de ingreso (creadoEn)
@@ -186,9 +191,14 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
       },
     });
 
+    // Token de un solo uso: el correo lleva al postulante directo a su
+    // expediente, sin pedirle el DNI. Se renueva en cada observación para que
+    // un enlace viejo no sirva después de subsanar.
+    const token = randomBytes(32).toString("hex");
+
     await prisma.postulacion.update({
       where: { id },
-      data: { estado: "OBSERVADO" },
+      data: { estado: "OBSERVADO", tokenSubsanacion: token },
     });
 
     await prisma.auditoria.create({
@@ -202,9 +212,13 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
     });
 
     // Notificar al postulante por correo, indicando qué debe corregir
-    await enviarObservacion(postulacion.gmail, req.body.mensaje, id, req.body.campos).catch(
-      console.error
-    );
+    await enviarObservacion(
+      postulacion.gmail,
+      req.body.mensaje,
+      id,
+      req.body.campos,
+      `${process.env.FRONTEND_URL}/subsanacion/${token}`
+    ).catch(console.error);
 
     res.json(obs);
   } catch (err) {

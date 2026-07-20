@@ -203,9 +203,9 @@ export async function enviarObservacion(
           </a>
         </div>
         <div style="background:#f5f5f5;border-radius:6px;padding:14px;font-size:12px;color:#777;">
-          <strong>Nota:</strong> Este enlace es válido por <strong>72 horas</strong>.
-          Si venció, visita <a href="${process.env.FRONTEND_URL}/subsanacion" style="color:#003DA5;">${process.env.FRONTEND_URL}/subsanacion</a>
-          e ingresa con tu DNI.
+          <strong>Nota:</strong> Este enlace es personal y te lleva directamente a tu expediente,
+          sin que tengas que identificarte. Deja de funcionar una vez que reenvíes tus documentos.
+          Si ya no funciona y necesitas corregir algo más, espera la nueva observación del revisor.
         </div>
         <p style="font-size:11px;color:#aaa;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">
           Colegio de Ingenieros del Perú · Sistema de Inscripciones

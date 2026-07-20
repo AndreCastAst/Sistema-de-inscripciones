@@ -411,7 +411,7 @@ function TabTerminalCobro() {
     // siguen registrando en ventanilla, que es donde ocurre el pago físico.
     if (metodoCobro === "digital") {
       try {
-        const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, periodosAPagar);
+        const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, { periodos: periodosAPagar });
         window.location.href = pref.init_point;
         return;
       } catch (err) {
