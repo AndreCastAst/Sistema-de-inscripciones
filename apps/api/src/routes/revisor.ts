@@ -133,9 +133,18 @@ router.post("/:id/iniciar", async (req, res, next) => {
   }
 });
 
+export const CAMPOS_SUBSANABLES = ["foto", "titulo", "voucher"] as const;
+
 const observarSchema = z.object({
   mensaje: z.string().min(10, "La observación debe tener al menos 10 caracteres"),
   revisorId: z.number().int().positive(),
+  // Documentos que el postulante podrá reemplazar al subsanar. Se exige al
+  // menos uno: una observación sin campos dejaría el expediente sin nada
+  // corregible y el postulante no podría avanzar.
+  campos: z
+    .array(z.enum(CAMPOS_SUBSANABLES))
+    .min(1, "Marca al menos un documento como observado")
+    .transform((c) => Array.from(new Set(c))),
 });
 
 // POST /api/v1/revisor/:id/observar
@@ -152,6 +161,7 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
       data: {
         postulacionId: id,
         mensaje: req.body.mensaje,
+        campos: req.body.campos,
         revisorId: req.body.revisorId,
       },
     });
@@ -171,8 +181,10 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
       },
     });
 
-    // Notificar al postulante por correo
-    await enviarObservacion(postulacion.gmail, req.body.mensaje, id).catch(console.error);
+    // Notificar al postulante por correo, indicando qué debe corregir
+    await enviarObservacion(postulacion.gmail, req.body.mensaje, id, req.body.campos).catch(
+      console.error
+    );
 
     res.json(obs);
   } catch (err) {

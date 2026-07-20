@@ -51,6 +51,10 @@ model Observacion {
   id            Int         @id @default(autoincrement())
   postulacionId Int
   mensaje       String
+  // Documentos marcados como observados: "foto" | "titulo" | "voucher".
+  // Delimitan qué puede reemplazar el postulante al subsanar. Vacío en las
+  // observaciones anteriores a esta función: ahí se permite corregir todo.
+  campos        String[]    @default([])
   revisorId     Int
   postulacion   Postulacion @relation(fields: [postulacionId], references: [id])
   revisor       Revisor     @relation(fields: [revisorId], references: [id])

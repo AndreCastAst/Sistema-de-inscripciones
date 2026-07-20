@@ -56,10 +56,21 @@ export interface Postulacion {
   actualizadoEn: string;
 }
 
+/** Documentos que el revisor puede marcar como observados */
+export type CampoObservable = "foto" | "titulo" | "voucher";
+
+export const CAMPO_LABEL: Record<CampoObservable, string> = {
+  foto: "Fotografía",
+  titulo: "Título profesional",
+  voucher: "Comprobante de pago",
+};
+
 export interface Observacion {
   id: number;
   postulacionId: number;
   mensaje: string;
+  /** Documentos observados. Vacío en observaciones previas a esta función. */
+  campos: CampoObservable[];
   revisorId: number;
   creadoEn: string;
 }

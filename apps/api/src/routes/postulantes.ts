@@ -188,7 +188,37 @@ router.patch("/:id", validate(subsanacionSchema), async (req, res, next) => {
       });
     }
 
+    // El postulante solo puede reemplazar los documentos que el revisor marcó
+    // en la última observación. La UI ya los oculta, pero la restricción tiene
+    // que vivir acá: el PATCH es público y se puede llamar directo.
+    const ultima = await prisma.observacion.findFirst({
+      where: { postulacionId: id },
+      orderBy: { creadoEn: "desc" },
+    });
+    // Observaciones anteriores a esta función no tienen campos marcados; en ese
+    // caso se permite corregir todo para no bloquear expedientes ya notificados.
+    const permitidos = ultima?.campos.length ? ultima.campos : ["foto", "titulo", "voucher"];
+
     const { fotoUrl, tituloUrl, voucherUrl } = req.body;
+    const enviados = [
+      ...(fotoUrl ? ["foto"] : []),
+      ...(tituloUrl ? ["titulo"] : []),
+      ...(voucherUrl ? ["voucher"] : []),
+    ];
+    const noPermitidos = enviados.filter((c) => !permitidos.includes(c));
+    if (noPermitidos.length) {
+      const ETIQUETA: Record<string, string> = {
+        foto: "fotografía",
+        titulo: "título profesional",
+        voucher: "comprobante de pago",
+      };
+      return res.status(400).json({
+        error: `Solo puedes corregir los documentos observados. No corresponde modificar: ${noPermitidos
+          .map((c) => ETIQUETA[c] ?? c)
+          .join(", ")}.`,
+      });
+    }
+
     const postulacion = await prisma.postulacion.update({
       where: { id },
       data: {

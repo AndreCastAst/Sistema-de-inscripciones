@@ -150,12 +150,33 @@ export async function enviarConfirmacionInscripcion(
   );
 }
 
+const ETIQUETA_CAMPO: Record<string, string> = {
+  foto: "Fotografía",
+  titulo: "Título profesional",
+  voucher: "Comprobante de pago",
+};
+
 export async function enviarObservacion(
   to: string,
   mensaje: string,
   postulacionId: number,
+  campos: string[] = [],
   linkSubsanacion: string = `${process.env.FRONTEND_URL}/subsanacion`
 ) {
+  // Lista de documentos a corregir. Si la observación no trae campos (las
+  // anteriores a esta función), se omite el bloque y el aviso genérico basta.
+  const listaCampos = campos.length
+    ? `<div style="margin:16px 0;padding:14px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;">
+         <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#f57f17;">Documentos que debes corregir:</p>
+         <ul style="margin:0;padding-left:20px;color:#555;font-size:14px;">
+           ${campos.map((c) => `<li style="margin-bottom:4px;">${ETIQUETA_CAMPO[c] ?? c}</li>`).join("")}
+         </ul>
+         <p style="margin:10px 0 0;font-size:13px;color:#777;">
+           Solo estos documentos podrán reemplazarse. El resto de tu expediente se mantiene tal como lo enviaste.
+         </p>
+       </div>`
+    : "";
+
   await enviar(
     to,
     "⚠️ Observación en tu expediente – Colegio de Ingenieros del Perú",
@@ -173,6 +194,7 @@ export async function enviarObservacion(
         <blockquote style="border-left:4px solid #f57f17;padding:12px 16px;margin:16px 0;color:#555;background:#fff8e1;border-radius:0 8px 8px 0;font-size:14px;">
           ${mensaje}
         </blockquote>
+        ${listaCampos}
         <p style="color:#555;font-size:14px;">Para subsanar tu expediente, haz clic en el botón a continuación. No se aplicarán cargos adicionales.</p>
         <div style="text-align:center;margin:28px 0;">
           <a href="${linkSubsanacion}"

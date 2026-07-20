@@ -5,9 +5,141 @@ import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
 import { buscarPostulacionPorDNI, subsanarPostulacion } from "@/lib/api";
-import type { PostulacionDetalle } from "@/types";
+import { CAMPO_LABEL } from "@/types";
+import type { PostulacionDetalle, CampoObservable } from "@/types";
 
 type EstadoArchivo = "idle" | "subiendo" | "listo" | "error";
+
+const TODOS_LOS_CAMPOS: CampoObservable[] = ["foto", "titulo", "voucher"];
+
+// Orden de presentación en pantalla, independiente del orden en que el revisor
+// haya marcado los documentos.
+const ORDEN_CAMPOS: CampoObservable[] = ["titulo", "foto", "voucher"];
+
+const CONFIG_DOC: Record<
+  CampoObservable,
+  { titulo: string; ayuda: string; accept: string; icono: string; cta: string; formato: string; cargado: string }
+> = {
+  titulo: {
+    titulo: "Título Profesional (PDF)",
+    ayuda: "Cargue nuevamente su título en formato PDF claro y legible.",
+    accept: "application/pdf",
+    icono: "picture_as_pdf",
+    cta: "Subir Título Profesional Corregido",
+    formato: "PDF · Máx. 10 MB",
+    cargado: "✓ Título cargado",
+  },
+  foto: {
+    titulo: "Fotografía (JPG/PNG · Proporción 3:4)",
+    ayuda: "Debe ser proporción 3:4 (alto/ancho), fondo blanco, sin accesorios.",
+    accept: "image/jpeg,image/png",
+    icono: "add_a_photo",
+    cta: "Subir Fotografía Corregida",
+    formato: "JPG/PNG · Proporción 3:4",
+    cargado: "✓ Fotografía cargada",
+  },
+  voucher: {
+    titulo: "Comprobante de Pago (JPG/PNG/PDF)",
+    ayuda: "Adjunte el voucher legible, donde se vea el número de operación y el monto.",
+    accept: "image/jpeg,image/png,application/pdf",
+    icono: "receipt_long",
+    cta: "Subir Comprobante Corregido",
+    formato: "JPG/PNG/PDF · Máx. 10 MB",
+    cargado: "✓ Comprobante cargado",
+  },
+};
+
+function DocumentoUploader({
+  campo,
+  estado,
+  tienePrevio,
+  onArchivo,
+}: {
+  campo: CampoObservable;
+  estado: EstadoArchivo;
+  tienePrevio: boolean;
+  onArchivo: (file: File) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const cfg = CONFIG_DOC[campo];
+
+  return (
+    <div className="border border-status-observado-text/30 rounded-lg p-md bg-status-observado-bg/30">
+      <div className="flex items-start gap-md mb-md">
+        <span className="material-symbols-outlined text-status-observado-text mt-xs">info</span>
+        <div className="flex-1">
+          <h4 className="text-[15px] font-semibold text-on-surface mb-xs">{cfg.titulo}</h4>
+          <p className="text-[15px] text-on-surface-variant">{cfg.ayuda}</p>
+        </div>
+      </div>
+      <input
+        type="file"
+        ref={ref}
+        className="hidden"
+        accept={cfg.accept}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onArchivo(f);
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => ref.current?.click()}
+        className={`w-full border-2 border-dashed rounded-xl p-lg flex flex-col items-center gap-sm transition-colors cursor-pointer ${
+          estado === "listo"
+            ? "border-status-aprobado-text/40 bg-status-aprobado-bg/20"
+            : estado === "error"
+            ? "border-error/40 bg-error-container/20"
+            : "border-status-observado-text bg-surface-container-lowest hover:bg-surface-bright"
+        }`}
+      >
+        {estado === "subiendo" ? (
+          <>
+            <Spinner />
+            <span className="text-[13px] text-on-surface-variant mt-sm">Subiendo...</span>
+          </>
+        ) : estado === "listo" ? (
+          <>
+            <span
+              className="material-symbols-outlined text-status-aprobado-text"
+              style={{ fontSize: "36px", fontVariationSettings: "'FILL' 1" }}
+            >
+              task
+            </span>
+            <div className="text-center">
+              <p className="text-[15px] font-semibold text-status-aprobado-text">{cfg.cargado}</p>
+              <p className="text-[13px] text-on-surface-variant">Haz clic para reemplazar</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="material-symbols-outlined text-status-observado-text" style={{ fontSize: "36px" }}>
+              {cfg.icono}
+            </span>
+            <div className="text-center">
+              <p className="text-[15px] font-semibold text-on-surface">{cfg.cta}</p>
+              <p className="text-[13px] text-on-surface-variant">{cfg.formato}</p>
+            </div>
+          </>
+        )}
+      </button>
+      {estado === "error" && <p className="text-error text-[13px] mt-sm">Error al subir. Intenta de nuevo.</p>}
+      {tienePrevio && estado === "idle" && (
+        <p className="text-[13px] text-on-surface-variant mt-sm">
+          Archivo actual registrado — será reemplazado al subir uno nuevo.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Documentos que el revisor marcó en la última observación: son los únicos
+// editables. Si la observación es anterior a esta función no trae campos, y en
+// ese caso se habilitan todos para no dejar el expediente sin salida.
+function camposEditables(p: PostulacionDetalle): CampoObservable[] {
+  const ultima = p.observaciones[0]; // el backend las devuelve más reciente primero
+  return ultima?.campos?.length ? ultima.campos : TODOS_LOS_CAMPOS;
+}
 
 export default function SubsanacionPage() {
   const [dni, setDni] = useState("");
@@ -15,12 +147,12 @@ export default function SubsanacionPage() {
   const [postulacion, setPostulacion] = useState<PostulacionDetalle | null>(null);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
 
-  const fotoRef = useRef<HTMLInputElement>(null);
-  const tituloRef = useRef<HTMLInputElement>(null);
   const [nuevaFotoUrl, setNuevaFotoUrl] = useState<string | null>(null);
   const [nuevoTituloUrl, setNuevoTituloUrl] = useState<string | null>(null);
+  const [nuevoVoucherUrl, setNuevoVoucherUrl] = useState<string | null>(null);
   const [fotoEstado, setFotoEstado] = useState<EstadoArchivo>("idle");
   const [tituloEstado, setTituloEstado] = useState<EstadoArchivo>("idle");
+  const [voucherEstado, setVoucherEstado] = useState<EstadoArchivo>("idle");
 
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
@@ -48,8 +180,10 @@ export default function SubsanacionPage() {
         setPostulacion(data);
         setNuevaFotoUrl(null);
         setNuevoTituloUrl(null);
+        setNuevoVoucherUrl(null);
         setFotoEstado("idle");
         setTituloEstado("idle");
+        setVoucherEstado("idle");
       }
     } catch {
       setErrorBusqueda("No se encontró ningún expediente activo para ese DNI.");
@@ -58,32 +192,60 @@ export default function SubsanacionPage() {
     }
   }
 
-  async function subirArchivo(file: File, tipo: "foto" | "titulo") {
-    if (tipo === "foto") setFotoEstado("subiendo");
-    else setTituloEstado("subiendo");
+  const setEstado: Record<CampoObservable, (e: EstadoArchivo) => void> = {
+    foto: setFotoEstado,
+    titulo: setTituloEstado,
+    voucher: setVoucherEstado,
+  };
+  const setUrl: Record<CampoObservable, (u: string | null) => void> = {
+    foto: setNuevaFotoUrl,
+    titulo: setNuevoTituloUrl,
+    voucher: setNuevoVoucherUrl,
+  };
+
+  const editables = postulacion ? camposEditables(postulacion) : [];
+  const conformes = TODOS_LOS_CAMPOS.filter((c) => !editables.includes(c));
+  const estadoPorCampo: Record<CampoObservable, EstadoArchivo> = {
+    foto: fotoEstado,
+    titulo: tituloEstado,
+    voucher: voucherEstado,
+  };
+  const urlPreviaPorCampo: Record<CampoObservable, string | null> = {
+    foto: postulacion?.fotoUrl ?? null,
+    titulo: postulacion?.tituloUrl ?? null,
+    voucher: postulacion?.voucherUrl ?? null,
+  };
+  const hayAlgoCargado = editables.some((c) => estadoPorCampo[c] === "listo");
+
+  async function subirArchivo(file: File, tipo: CampoObservable) {
+    setEstado[tipo]("subiendo");
     try {
       const url = file.type === "application/pdf" ? await subirPDF(file) : await subirImagen(file);
-      if (tipo === "foto") { setNuevaFotoUrl(url); setFotoEstado("listo"); }
-      else { setNuevoTituloUrl(url); setTituloEstado("listo"); }
+      setUrl[tipo](url);
+      setEstado[tipo]("listo");
     } catch {
-      if (tipo === "foto") setFotoEstado("error");
-      else setTituloEstado("error");
+      setEstado[tipo]("error");
     }
   }
 
   async function reenviarExpediente() {
     if (!postulacion) return;
-    if (!nuevaFotoUrl && !nuevoTituloUrl) {
+    // Se envía solo lo que el revisor habilitó: aunque quedara una URL vieja en
+    // estado, un documento no observado nunca debe viajar en el PATCH.
+    const editables = camposEditables(postulacion);
+    const payload = {
+      ...(editables.includes("foto") && nuevaFotoUrl ? { fotoUrl: nuevaFotoUrl } : {}),
+      ...(editables.includes("titulo") && nuevoTituloUrl ? { tituloUrl: nuevoTituloUrl } : {}),
+      ...(editables.includes("voucher") && nuevoVoucherUrl ? { voucherUrl: nuevoVoucherUrl } : {}),
+    };
+    if (Object.keys(payload).length === 0) {
       setErrorEnvio("Debes corregir al menos un documento antes de reenviar.");
       return;
     }
     setEnviando(true);
     setErrorEnvio(null);
     try {
-      await subsanarPostulacion(postulacion.id, {
-        ...(nuevaFotoUrl && { fotoUrl: nuevaFotoUrl }),
-        ...(nuevoTituloUrl && { tituloUrl: nuevoTituloUrl }),
-      });
+      await subsanarPostulacion(postulacion.id, payload);
       setExito(true);
     } catch {
       setErrorEnvio("Error al reenviar el expediente. Intenta de nuevo.");
@@ -221,6 +383,13 @@ export default function SubsanacionPage() {
                     <span className="material-symbols-outlined text-status-observado-text">assignment_late</span>
                     Campos Observados (Editable)
                   </h2>
+                  <p className="text-[13px] text-on-surface-variant mt-xs">
+                    Solo puedes reemplazar{" "}
+                    <strong className="text-status-observado-text">
+                      {editables.map((c) => CAMPO_LABEL[c].toLowerCase()).join(" y ")}
+                    </strong>
+                    . El resto de tu expediente se mantiene como lo enviaste.
+                  </p>
                 </div>
                 <div className="p-lg flex flex-col gap-lg">
 
@@ -239,123 +408,16 @@ export default function SubsanacionPage() {
                     </div>
                   )}
 
-                  {/* Título Profesional */}
-                  <div className="border border-status-observado-text/30 rounded-lg p-md bg-status-observado-bg/30">
-                    <div className="flex items-start gap-md mb-md">
-                      <span className="material-symbols-outlined text-status-observado-text mt-xs">info</span>
-                      <div className="flex-1">
-                        <h4 className="text-[15px] font-semibold text-on-surface mb-xs">Título Profesional (PDF)</h4>
-                        <p className="text-[15px] text-on-surface-variant">
-                          Cargue nuevamente su título en formato PDF claro y legible.
-                        </p>
-                      </div>
-                    </div>
-                    <input
-                      type="file"
-                      ref={tituloRef}
-                      className="hidden"
-                      accept="application/pdf"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) subirArchivo(f, "titulo"); }}
+                  {/* Solo los documentos que el revisor marcó como observados */}
+                  {ORDEN_CAMPOS.filter((c) => editables.includes(c)).map((campo) => (
+                    <DocumentoUploader
+                      key={campo}
+                      campo={campo}
+                      estado={estadoPorCampo[campo]}
+                      tienePrevio={Boolean(urlPreviaPorCampo[campo])}
+                      onArchivo={(f) => subirArchivo(f, campo)}
                     />
-                    <button
-                      type="button"
-                      onClick={() => tituloRef.current?.click()}
-                      className={`w-full border-2 border-dashed rounded-xl p-lg flex flex-col items-center gap-sm transition-colors cursor-pointer ${
-                        tituloEstado === "listo"
-                          ? "border-status-aprobado-text/40 bg-status-aprobado-bg/20"
-                          : tituloEstado === "error"
-                          ? "border-error/40 bg-error-container/20"
-                          : "border-status-observado-text bg-surface-container-lowest hover:bg-surface-bright"
-                      }`}
-                    >
-                      {tituloEstado === "subiendo" ? (
-                        <><Spinner /><span className="text-[13px] text-on-surface-variant mt-sm">Subiendo...</span></>
-                      ) : tituloEstado === "listo" ? (
-                        <>
-                          <span className="material-symbols-outlined text-status-aprobado-text" style={{ fontSize: "36px", fontVariationSettings: "'FILL' 1" }}>task</span>
-                          <div className="text-center">
-                            <p className="text-[15px] font-semibold text-status-aprobado-text">✓ Título cargado</p>
-                            <p className="text-[13px] text-on-surface-variant">Haz clic para reemplazar</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-status-observado-text" style={{ fontSize: "36px" }}>picture_as_pdf</span>
-                          <div className="text-center">
-                            <p className="text-[15px] font-semibold text-on-surface">Subir Título Profesional Corregido</p>
-                            <p className="text-[13px] text-on-surface-variant">PDF · Máx. 10 MB</p>
-                          </div>
-                        </>
-                      )}
-                    </button>
-                    {tituloEstado === "error" && (
-                      <p className="text-error text-[13px] mt-sm">Error al subir. Intenta de nuevo.</p>
-                    )}
-                    {postulacion.tituloUrl && tituloEstado === "idle" && (
-                      <p className="text-[13px] text-on-surface-variant mt-sm">
-                        Archivo actual registrado — será reemplazado al subir uno nuevo.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Fotografía */}
-                  <div className="border border-status-observado-text/30 rounded-lg p-md bg-status-observado-bg/30">
-                    <div className="flex items-start gap-md mb-md">
-                      <span className="material-symbols-outlined text-status-observado-text mt-xs">info</span>
-                      <div className="flex-1">
-                        <h4 className="text-[15px] font-semibold text-on-surface mb-xs">Fotografía (JPG/PNG · Proporción 3:4)</h4>
-                        <p className="text-[15px] text-on-surface-variant">
-                          Debe ser proporción 3:4 (alto/ancho), fondo blanco, sin accesorios.
-                        </p>
-                      </div>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fotoRef}
-                      className="hidden"
-                      accept="image/jpeg,image/png"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) subirArchivo(f, "foto"); }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fotoRef.current?.click()}
-                      className={`w-full border-2 border-dashed rounded-xl p-lg flex flex-col items-center gap-sm transition-colors cursor-pointer ${
-                        fotoEstado === "listo"
-                          ? "border-status-aprobado-text/40 bg-status-aprobado-bg/20"
-                          : fotoEstado === "error"
-                          ? "border-error/40 bg-error-container/20"
-                          : "border-status-observado-text bg-surface-container-lowest hover:bg-surface-bright"
-                      }`}
-                    >
-                      {fotoEstado === "subiendo" ? (
-                        <><Spinner /><span className="text-[13px] text-on-surface-variant mt-sm">Subiendo...</span></>
-                      ) : fotoEstado === "listo" ? (
-                        <>
-                          <span className="material-symbols-outlined text-status-aprobado-text" style={{ fontSize: "36px", fontVariationSettings: "'FILL' 1" }}>task</span>
-                          <div className="text-center">
-                            <p className="text-[15px] font-semibold text-status-aprobado-text">✓ Fotografía cargada</p>
-                            <p className="text-[13px] text-on-surface-variant">Haz clic para reemplazar</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-status-observado-text" style={{ fontSize: "36px" }}>add_a_photo</span>
-                          <div className="text-center">
-                            <p className="text-[15px] font-semibold text-on-surface">Subir Fotografía Corregida</p>
-                            <p className="text-[13px] text-on-surface-variant">JPG/PNG · Proporción 3:4</p>
-                          </div>
-                        </>
-                      )}
-                    </button>
-                    {fotoEstado === "error" && (
-                      <p className="text-error text-[13px] mt-sm">Error al subir. Intenta de nuevo.</p>
-                    )}
-                    {postulacion.fotoUrl && fotoEstado === "idle" && (
-                      <p className="text-[13px] text-on-surface-variant mt-sm">
-                        Archivo actual registrado — será reemplazado al subir uno nuevo.
-                      </p>
-                    )}
-                  </div>
+                  ))}
                 </div>
               </div>
             </section>
@@ -370,6 +432,20 @@ export default function SubsanacionPage() {
                   </h3>
                 </div>
                 <div className="p-lg grid grid-cols-1 md:grid-cols-2 gap-lg">
+                  {/* Documentos no observados: quedan bloqueados */}
+                  {conformes.map((campo) => (
+                    <div key={campo}>
+                      <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">
+                        {CAMPO_LABEL[campo]}
+                      </label>
+                      <input
+                        readOnly
+                        value="Documento conforme — no requiere corrección"
+                        className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-on-surface-variant text-[15px] cursor-not-allowed outline-none"
+                      />
+                      <p className="text-[13px] text-on-surface-variant mt-xs">✓ Conforme</p>
+                    </div>
+                  ))}
                   <div>
                     <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">Correo Electrónico</label>
                     <input
@@ -429,8 +505,10 @@ export default function SubsanacionPage() {
                   onClick={() => {
                     setNuevaFotoUrl(null);
                     setNuevoTituloUrl(null);
+                    setNuevoVoucherUrl(null);
                     setFotoEstado("idle");
                     setTituloEstado("idle");
+                    setVoucherEstado("idle");
                     setErrorEnvio(null);
                   }}
                   className="w-full sm:w-auto h-[48px] px-lg rounded flex items-center justify-center gap-sm text-[15px] font-semibold bg-surface-container-lowest text-on-surface hover:bg-surface-dim transition-colors border border-outline-variant"
@@ -441,7 +519,7 @@ export default function SubsanacionPage() {
                 <button
                   type="button"
                   onClick={reenviarExpediente}
-                  disabled={enviando || (fotoEstado !== "listo" && tituloEstado !== "listo")}
+                  disabled={enviando || !hayAlgoCargado}
                   className="w-full sm:w-auto h-[48px] px-xl rounded flex items-center justify-center gap-sm text-[15px] font-semibold bg-primary text-on-primary hover:brightness-110 transition-colors shadow-sm disabled:opacity-60"
                 >
                   {enviando ? <Spinner /> : <span className="material-symbols-outlined text-xl">send</span>}

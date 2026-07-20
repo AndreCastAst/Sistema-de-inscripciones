@@ -8,6 +8,7 @@ import type {
   Postulacion,
   CarnetData,
   PostulacionDetalle,
+  CampoObservable,
 } from "@/types";
 
 export const api = axios.create({
@@ -177,9 +178,10 @@ export async function redirigirPostulacion(
 export async function observarPostulacion(
   id: number,
   mensaje: string,
-  revisorId: number
+  revisorId: number,
+  campos: CampoObservable[]
 ): Promise<void> {
-  await api.post(`/revisor/${id}/observar`, { mensaje, revisorId });
+  await api.post(`/revisor/${id}/observar`, { mensaje, revisorId, campos });
 }
 
 export async function buscarPostulacionPorDNI(

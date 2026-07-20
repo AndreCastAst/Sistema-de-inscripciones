@@ -13,7 +13,8 @@ import {
   getRegiones,
 } from "@/lib/api";
 import { isSuperAdmin } from "@/lib/auth";
-import type { PostulacionDetalle, Carrera, Region } from "@/types";
+import { CAMPO_LABEL } from "@/types";
+import type { PostulacionDetalle, Carrera, Region, CampoObservable } from "@/types";
 
 interface Props {
   params: { id: string };
@@ -55,6 +56,14 @@ export default function AuditoriaPage({ params }: Props) {
   const [estadoVoucher, setEstadoVoucher] = useState<"sin-validar" | "correcto" | "observado">(
     "sin-validar"
   );
+
+  // Documentos marcados como "Obs.": son los únicos que el postulante podrá
+  // reemplazar al subsanar, así que se envían junto con la observación.
+  const camposObservados: CampoObservable[] = [
+    ...(estadoFoto === "observado" ? (["foto"] as const) : []),
+    ...(estadoTitulo === "observado" ? (["titulo"] as const) : []),
+    ...(estadoVoucher === "observado" ? (["voucher"] as const) : []),
+  ];
 
   useEffect(() => {
     Promise.all([
@@ -107,13 +116,24 @@ export default function AuditoriaPage({ params }: Props) {
       });
       return;
     }
+    // Los documentos marcados con "Obs." definen qué podrá reemplazar el
+    // postulante al subsanar; sin ninguno no tendría nada que corregir.
+    if (camposObservados.length === 0) {
+      setMensajeAccion({
+        tipo: "error",
+        texto: 'Marca con "Obs." al menos un documento antes de enviar la observación.',
+      });
+      return;
+    }
     setProcesando(true);
     setMensajeAccion(null);
     try {
-      await observarPostulacion(id, observacion, 1);
+      await observarPostulacion(id, observacion, 1, camposObservados);
       setMensajeAccion({
         tipo: "exito",
-        texto: "Observación enviada. El postulante recibirá una notificación por correo.",
+        texto: `Observación enviada. El postulante solo podrá corregir: ${camposObservados
+          .map((c) => CAMPO_LABEL[c].toLowerCase())
+          .join(", ")}.`,
       });
       setPostulacion((p) => (p ? { ...p, estado: "OBSERVADO" } : p));
     } catch {
@@ -555,6 +575,20 @@ export default function AuditoriaPage({ params }: Props) {
                 rows={4}
                 className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none placeholder:text-on-surface-variant/50 disabled:opacity-60"
               />
+              {/* Qué habilita esta observación: lo que el postulante podrá reemplazar */}
+              {camposObservados.length > 0 ? (
+                <p className="text-[12px] text-on-surface-variant mt-sm">
+                  El postulante solo podrá reemplazar:{" "}
+                  <strong className="text-status-observado-text">
+                    {camposObservados.map((c) => CAMPO_LABEL[c]).join(" · ")}
+                  </strong>
+                </p>
+              ) : (
+                <p className="text-[12px] text-on-surface-variant/70 mt-sm">
+                  Marca con <strong>&quot;Obs.&quot;</strong> los documentos a corregir. Solo esos
+                  podrán reemplazarse al subsanar.
+                </p>
+              )}
             </div>
 
             {/* Mensaje de resultado */}
@@ -578,8 +612,13 @@ export default function AuditoriaPage({ params }: Props) {
               <div className="flex flex-col gap-sm pt-md border-t border-outline-variant">
                 <button
                   onClick={handleObservar}
-                  disabled={procesando}
-                  className="w-full bg-primary text-on-primary text-[15px] font-semibold h-12 rounded-lg flex items-center justify-center gap-sm hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-60"
+                  disabled={procesando || camposObservados.length === 0}
+                  title={
+                    camposObservados.length === 0
+                      ? 'Marca al menos un documento con "Obs." para poder observar'
+                      : undefined
+                  }
+                  className="w-full bg-primary text-on-primary text-[15px] font-semibold h-12 rounded-lg flex items-center justify-center gap-sm hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {procesando && <Spinner />}
                   <span className="material-symbols-outlined text-xl">send</span>
