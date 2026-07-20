@@ -40,7 +40,7 @@ export async function consultarDNI(dni: string): Promise<DatosDNI> {
 
 export async function crearPostulacion(
   body: FormInscripcionCompleto
-): Promise<Postulacion> {
+): Promise<Postulacion & { comprobanteUrl?: string | null }> {
   const { data } = await api.post("/postulantes", body);
   return data;
 }

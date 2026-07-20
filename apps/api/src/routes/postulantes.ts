@@ -106,10 +106,14 @@ router.post("/", validate(postulacionSchema), async (req, res, next) => {
     // confirmación del cobro; avisar acá anunciaría un pago que no ocurrió.
     const ref = postulacion.voucherUrl;
     if (ref?.startsWith("SIM-")) {
-      // Cobro en ventanilla: se emite la boleta y queda como comprobante.
-      registrarPagoVentanilla(postulacion.id, ref).catch((err) =>
-        console.error(`[Boleta] Error al emitir comprobante de #${postulacion.id}:`, err?.message ?? err)
-      );
+      // Cobro en ventanilla: se emite la boleta y queda como comprobante. Acá sí
+      // se espera, porque el cajero necesita el enlace para entregársela a la
+      // persona en el momento; el correo se envía aparte sin bloquear.
+      const comprobanteUrl = await registrarPagoVentanilla(postulacion.id, ref).catch((err) => {
+        console.error(`[Boleta] Error al emitir comprobante de #${postulacion.id}:`, err?.message ?? err);
+        return null;
+      });
+      return res.status(201).json({ ...postulacion, voucherUrl: comprobanteUrl ?? ref, comprobanteUrl });
     } else if (ref) {
       // Voucher bancario ya adjunto por el postulante.
       enviarConfirmacionDePago(postulacion.id).catch((err) =>

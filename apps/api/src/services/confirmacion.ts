@@ -46,9 +46,9 @@ function datosBoletaSimulada(referencia: string | null) {
 export async function registrarPagoVentanilla(
   postulacionId: number,
   referencia: string
-): Promise<void> {
+): Promise<string | null> {
   const p = await prisma.postulacion.findUnique({ where: { id: postulacionId } });
-  if (!p) return;
+  if (!p) return null;
 
   const datos = datosBoletaSimulada(referencia);
   const { fecha, hora } = fechaHora();
@@ -81,7 +81,9 @@ export async function registrarPagoVentanilla(
     },
   });
 
-  await enviarConfirmacionInscripcion(p.gmail, {
+  // El correo no se espera: el cajero tiene a la persona enfrente y necesita la
+  // boleta ya. El envío sigue en segundo plano.
+  enviarConfirmacionInscripcion(p.gmail, {
     postulacionId: p.id,
     nombres: p.nombres,
     apellidoPaterno: p.apellidoPaterno,
@@ -94,6 +96,8 @@ export async function registrarPagoVentanilla(
   }).catch((err) =>
     console.error(`[Email] Error al confirmar pago de #${postulacionId}:`, err?.message ?? err)
   );
+
+  return comprobanteUrl;
 }
 
 /**

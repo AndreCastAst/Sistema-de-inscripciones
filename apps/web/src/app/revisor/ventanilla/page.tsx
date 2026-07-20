@@ -42,6 +42,8 @@ function TabNuevoExpediente() {
 
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState<number | null>(null);
+  // URL de la boleta emitida, para que el cajero la entregue en el momento.
+  const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function validarDNI() {
@@ -110,6 +112,7 @@ function TabNuevoExpediente() {
         return;
       }
 
+      setComprobanteUrl(result.comprobanteUrl ?? null);
       setExito(result.id);
     } catch (err) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
@@ -123,7 +126,7 @@ function TabNuevoExpediente() {
     setDni(""); setDniVerificado(false); setNombres(""); setApellidoPaterno(""); setApellidoMaterno("");
     setGmail("");
     setFotoUrl(null); setFotoEstado("idle"); setTituloUrl(null); setTituloEstado("idle");
-    setVoucherUrl(null); setVoucherEstado("idle"); setMetodoPago("efectivo");
+    setVoucherUrl(null); setVoucherEstado("idle"); setMetodoPago("efectivo"); setComprobanteUrl(null);
     setError(null); setExito(null);
   }
 
@@ -133,6 +136,49 @@ function TabNuevoExpediente() {
         <span className="material-symbols-outlined text-status-aprobado-text" style={{ fontSize: "56px", fontVariationSettings: "'FILL' 1" }}>check_circle</span>
         <h3 className="text-[20px] font-semibold text-on-surface">Expediente registrado</h3>
         <p className="text-[15px] text-on-surface-variant">Expediente N° <strong>{exito}</strong> creado exitosamente.</p>
+
+        {/* Boleta del cobro en ventanilla: el cajero la entrega en el momento */}
+        {comprobanteUrl ? (
+          <div className="w-full max-w-md bg-status-aprobado-bg border border-status-aprobado-text/25 rounded-xl p-md flex flex-col gap-sm">
+            <div className="flex items-center gap-sm justify-center">
+              <span className="material-symbols-outlined text-status-aprobado-text">receipt_long</span>
+              <p className="text-[15px] font-semibold text-status-aprobado-text">
+                Boleta de venta emitida
+              </p>
+            </div>
+            <p className="text-[13px] text-on-surface-variant">
+              Se envió una copia al correo del postulante. También puedes entregársela impresa.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-sm justify-center mt-xs">
+              <a
+                href={comprobanteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-xs px-lg py-2.5 rounded-lg text-[15px] font-semibold bg-primary text-on-primary hover:brightness-110 transition-all"
+              >
+                <span className="material-symbols-outlined text-xl">download</span>
+                Descargar boleta
+              </a>
+              <a
+                href={comprobanteUrl.replace(/\.pdf$/, ".jpg")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-xs px-lg py-2.5 rounded-lg text-[15px] font-semibold border border-outline-variant text-on-surface hover:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-xl">print</span>
+                Ver / imprimir
+              </a>
+            </div>
+          </div>
+        ) : (
+          metodoPago === "efectivo" && (
+            <p className="text-[13px] text-on-surface-variant max-w-sm">
+              No se pudo emitir la boleta automáticamente. El cobro quedó registrado igual; puedes
+              consultarlo en la auditoría del expediente.
+            </p>
+          )
+        )}
+
         <button onClick={resetForm} className="bg-primary text-on-primary px-lg py-2.5 rounded-lg text-[15px] font-semibold hover:brightness-110 transition-all">
           Nuevo expediente
         </button>
