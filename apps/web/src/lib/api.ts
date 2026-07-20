@@ -163,6 +163,17 @@ export async function aprobarPostulacion(
   return { codigoCIP: data.codigo };
 }
 
+// Mueve el expediente a otra sede cuando el postulante se equivocó de región
+// en el formulario público. Solo aplica a expedientes aún no decididos.
+export async function redirigirPostulacion(
+  id: number,
+  regionId: number,
+  motivo?: string
+): Promise<PostulacionDetalle> {
+  const { data } = await api.post(`/revisor/${id}/redirigir`, { regionId, motivo });
+  return data;
+}
+
 export async function observarPostulacion(
   id: number,
   mensaje: string,

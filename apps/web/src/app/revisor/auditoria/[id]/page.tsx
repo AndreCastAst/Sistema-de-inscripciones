@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   getPostulacionDetalle,
   aprobarPostulacion,
   observarPostulacion,
+  redirigirPostulacion,
   getCarreras,
+  getRegiones,
 } from "@/lib/api";
-import type { PostulacionDetalle, Carrera } from "@/types";
+import { isSuperAdmin } from "@/lib/auth";
+import type { PostulacionDetalle, Carrera, Region } from "@/types";
 
 interface Props {
   params: { id: string };
@@ -17,11 +21,19 @@ interface Props {
 
 export default function AuditoriaPage({ params }: Props) {
   const id = Number(params.id);
+  const router = useRouter();
 
   const [postulacion, setPostulacion] = useState<PostulacionDetalle | null>(null);
   const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [regiones, setRegiones] = useState<Region[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirección de sede (el postulante se equivocó al inscribirse)
+  const [redirigirAbierto, setRedirigirAbierto] = useState(false);
+  const [sedeDestino, setSedeDestino] = useState<string>("");
+  const [motivoRedireccion, setMotivoRedireccion] = useState("");
+  const [redirigiendo, setRedirigiendo] = useState(false);
 
   // Panel de decisión
   const [especialidad, setEspecialidad] = useState<string>("");
@@ -48,10 +60,12 @@ export default function AuditoriaPage({ params }: Props) {
     Promise.all([
       getPostulacionDetalle(id),
       getCarreras(),
+      getRegiones(),
     ])
-      .then(([p, c]) => {
+      .then(([p, c, r]) => {
         setPostulacion(p);
         setCarreras(c);
+        setRegiones(r);
         setEspecialidad(p.carrera ? `Ing. ${p.carrera.nombre}` : "");
       })
       .catch(() => {
@@ -109,6 +123,56 @@ export default function AuditoriaPage({ params }: Props) {
       });
     } finally {
       setProcesando(false);
+    }
+  }
+
+  async function handleRedirigir() {
+    const regionId = Number(sedeDestino);
+    if (!regionId) {
+      setMensajeAccion({ tipo: "error", texto: "Selecciona la sede de destino." });
+      return;
+    }
+    const destino = regiones.find((r) => r.id === regionId);
+
+    // Un admin de sede pierde el acceso al expediente en cuanto sale de su región.
+    const perderaAcceso = !isSuperAdmin();
+    const aviso = perderaAcceso
+      ? `\n\nAl pertenecer a otra sede, este expediente dejará de ser visible para ti.`
+      : "";
+    if (
+      !window.confirm(
+        `¿Redirigir el expediente #${id} a la sede ${destino?.nombre ?? ""}?${aviso}`
+      )
+    ) {
+      return;
+    }
+
+    setRedirigiendo(true);
+    setMensajeAccion(null);
+    try {
+      const actualizada = await redirigirPostulacion(
+        id,
+        regionId,
+        motivoRedireccion.trim() || undefined
+      );
+      setPostulacion(actualizada);
+      setRedirigirAbierto(false);
+      setMotivoRedireccion("");
+      setSedeDestino("");
+      setMensajeAccion({
+        tipo: "exito",
+        texto: `Expediente redirigido a la sede ${actualizada.region.nombre}.`,
+      });
+      if (perderaAcceso) {
+        setTimeout(() => router.push("/revisor"), 1800);
+      }
+    } catch {
+      setMensajeAccion({
+        tipo: "error",
+        texto: "No se pudo redirigir el expediente. Intenta de nuevo.",
+      });
+    } finally {
+      setRedirigiendo(false);
     }
   }
 
@@ -544,6 +608,91 @@ export default function AuditoriaPage({ params }: Props) {
                   No se puede modificar.
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Redirigir a otra sede */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-md shadow-sm">
+            <div className="flex items-start justify-between gap-sm">
+              <div>
+                <h3 className="text-[15px] font-semibold text-on-surface flex items-center gap-xs">
+                  <span className="material-symbols-outlined text-lg text-on-surface-variant">
+                    move_location
+                  </span>
+                  Redirigir a otra sede
+                </h3>
+                <p className="text-[12px] text-on-surface-variant mt-xs">
+                  Sede actual: <strong>{postulacion.region.nombre}</strong>
+                </p>
+              </div>
+              {!yaDecidido && (
+                <button
+                  onClick={() => setRedirigirAbierto((v) => !v)}
+                  className="text-[13px] font-medium text-primary hover:underline shrink-0"
+                >
+                  {redirigirAbierto ? "Cancelar" : "Cambiar"}
+                </button>
+              )}
+            </div>
+
+            {yaDecidido ? (
+              <p className="text-[12px] text-on-surface-variant/70 mt-sm">
+                Un expediente ya decidido no puede cambiar de sede.
+              </p>
+            ) : (
+              redirigirAbierto && (
+                <div className="mt-md flex flex-col gap-sm">
+                  <div>
+                    <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">
+                      Sede de destino <span className="text-error">*</span>
+                    </label>
+                    <select
+                      value={sedeDestino}
+                      onChange={(e) => setSedeDestino(e.target.value)}
+                      className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    >
+                      <option value="">Seleccione una sede...</option>
+                      {regiones
+                        .filter((r) => r.id !== postulacion.regionId)
+                        .map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.nombre}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[13px] font-medium text-on-surface-variant mb-xs">
+                      Motivo{" "}
+                      <span className="text-on-surface-variant/70">(opcional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={motivoRedireccion}
+                      onChange={(e) => setMotivoRedireccion(e.target.value)}
+                      maxLength={200}
+                      placeholder="Ej. el postulante indicó una sede equivocada"
+                      className="w-full bg-surface-bright border border-outline-variant rounded-lg px-md py-sm text-[15px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/50"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleRedirigir}
+                    disabled={redirigiendo || !sedeDestino}
+                    className="w-full bg-surface-container-high border border-outline-variant text-on-surface text-[15px] font-semibold h-11 rounded-lg flex items-center justify-center gap-sm hover:bg-surface-container-highest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {redirigiendo && <Spinner />}
+                    <span className="material-symbols-outlined text-xl">swap_horiz</span>
+                    Redirigir expediente
+                  </button>
+
+                  <p className="text-[12px] text-on-surface-variant/70">
+                    El expediente pasará a la bandeja de la sede elegida y su código CIP se
+                    generará con el correlativo de esa sede.
+                  </p>
+                </div>
+              )
             )}
           </div>
         </aside>

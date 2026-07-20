@@ -4,7 +4,7 @@ import { z } from "zod";
 import { validate } from "../middlewares/validate";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { generarCodigo } from "../services/correlativo";
-import { enviarObservacion, enviarAprobacion } from "../services/email";
+import { enviarObservacion, enviarAprobacion, enviarRedireccionSede } from "../services/email";
 import { firmarUrl } from "../services/cloudinary";
 
 const router = Router();
@@ -175,6 +175,81 @@ router.post("/:id/observar", validate(observarSchema), async (req, res, next) =>
     await enviarObservacion(postulacion.gmail, req.body.mensaje, id).catch(console.error);
 
     res.json(obs);
+  } catch (err) {
+    next(err);
+  }
+});
+
+const redirigirSchema = z.object({
+  regionId: z.number().int().positive(),
+  motivo: z.string().trim().max(200).optional(),
+});
+
+// POST /api/v1/revisor/:id/redirigir — mover el expediente a otra sede
+// (el postulante se equivocó de sede al inscribirse en el portal público)
+router.post("/:id/redirigir", validate(redirigirSchema), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { regionId, motivo } = req.body as { regionId: number; motivo?: string };
+
+    const postulacion = await prisma.postulacion.findUniqueOrThrow({
+      where: { id },
+      include: { region: true },
+    });
+
+    if (fueraDeSede(req, postulacion.regionId)) {
+      return res.status(403).json({ error: "No tiene acceso a expedientes de otra sede" });
+    }
+
+    // Un expediente ya decidido no se mueve: el código CIP se emite con la sede
+    // que tenía al aprobarse y cambiarla dejaría el correlativo inconsistente.
+    if (["APROBADO", "RECHAZADO"].includes(postulacion.estado)) {
+      return res
+        .status(400)
+        .json({ error: "No se puede redirigir un expediente en estado " + postulacion.estado });
+    }
+
+    if (regionId === postulacion.regionId) {
+      return res.status(400).json({ error: "El expediente ya pertenece a esa sede" });
+    }
+
+    const destino = await prisma.region.findUnique({ where: { id: regionId } });
+    if (!destino) {
+      return res.status(400).json({ error: "La sede de destino no existe" });
+    }
+
+    const actualizada = await prisma.postulacion.update({
+      where: { id },
+      data: { regionId },
+      // Mismo shape que GET /:id para que el frontend pueda reemplazar el
+      // expediente en pantalla sin perder el historial de observaciones.
+      include: {
+        region: true,
+        carrera: true,
+        observaciones: { include: { revisor: true }, orderBy: { creadoEn: "desc" } },
+      },
+    });
+
+    await prisma.auditoria.create({
+      data: {
+        accion: "REDIRECCION_SEDE",
+        entidad: "Postulacion",
+        entidadId: id,
+        actorId: req.usuario!.id,
+        detalle: `${postulacion.region.nombre} → ${destino.nombre}${motivo ? `. Motivo: ${motivo}` : ""}`,
+      },
+    });
+
+    // Notificar al postulante del cambio de sede
+    await enviarRedireccionSede(postulacion.gmail, {
+      postulacionId: id,
+      nombres: `${postulacion.apellidoPaterno} ${postulacion.apellidoMaterno}, ${postulacion.nombres}`,
+      sedeAnterior: postulacion.region.nombre,
+      sedeNueva: destino.nombre,
+      motivo,
+    }).catch(console.error);
+
+    res.json(actualizada);
   } catch (err) {
     next(err);
   }

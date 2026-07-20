@@ -194,6 +194,73 @@ export async function enviarObservacion(
   );
 }
 
+// Aviso al postulante de que su expediente pasó a otra sede (normalmente
+// porque eligió la sede equivocada al inscribirse en el portal público).
+export async function enviarRedireccionSede(
+  to: string,
+  datos: {
+    postulacionId: number;
+    nombres: string;
+    sedeAnterior: string;
+    sedeNueva: string;
+    motivo?: string;
+  }
+) {
+  const { postulacionId, nombres, sedeAnterior, sedeNueva, motivo } = datos;
+
+  const bloqueMotivo = motivo
+    ? `<blockquote style="border-left:4px solid #003DA5;padding:12px 16px;margin:16px 0;color:#555;background:#e8eef8;border-radius:0 8px 8px 0;font-size:14px;">
+         ${motivo}
+       </blockquote>`
+    : "";
+
+  await enviar(
+    to,
+    `Tu expediente fue derivado a la sede ${sedeNueva} – CIP`,
+    `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;border:1px solid #ddd;border-radius:10px;overflow:hidden;">
+        <div style="background:#003DA5;color:white;padding:24px;text-align:center;">
+          <h2 style="margin:0;font-size:20px;">COLEGIO DE INGENIEROS DEL PERÚ</h2>
+          <p style="margin:6px 0 0;font-size:12px;opacity:0.85;">Sistema de Inscripciones Virtual</p>
+        </div>
+        <div style="background:#e8eef8;padding:16px;text-align:center;border-bottom:1px solid #c8d4ec;">
+          <p style="margin:0;font-size:15px;font-weight:700;color:#003DA5;">Tu expediente #${postulacionId} cambió de sede</p>
+        </div>
+        <div style="padding:24px;">
+          <p style="color:#333;font-size:14px;">Estimado/a <strong>${nombres}</strong>,</p>
+          <p style="color:#555;font-size:14px;">
+            Tu solicitud de inscripción fue derivada a otra sede del Colegio de Ingenieros del Perú
+            para continuar con su evaluación.
+          </p>
+          ${bloqueMotivo}
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
+            <tr>
+              <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;width:45%;">N° Expediente</td>
+              <td style="padding:10px 12px;border:1px solid #e0e0e0;font-family:monospace;">#${postulacionId}</td>
+            </tr>
+            <tr style="background:#f9f9f9;">
+              <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;">Sede anterior</td>
+              <td style="padding:10px 12px;border:1px solid #e0e0e0;color:#888;text-decoration:line-through;">${sedeAnterior}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:600;">Sede actual</td>
+              <td style="padding:10px 12px;border:1px solid #e0e0e0;font-weight:700;color:#003DA5;">${sedeNueva}</td>
+            </tr>
+          </table>
+          <div style="margin-top:16px;padding:14px;background:#e8f5e9;border-left:4px solid #4caf50;border-radius:4px;font-size:13px;color:#2e7d32;">
+            <strong>No necesitas hacer nada.</strong> Tus documentos y tu pago se mantienen tal como los enviaste;
+            solo cambia la sede que revisará tu expediente. Te notificaremos por este mismo correo cuando haya
+            una actualización.
+          </div>
+          <p style="font-size:11px;color:#aaa;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">
+            Colegio de Ingenieros del Perú · Sistema de Inscripciones
+          </p>
+        </div>
+      </div>
+    `
+  );
+}
+
 export async function enviarAprobacion(to: string, codigo: string, nombres: string) {
   await enviar(
     to,
