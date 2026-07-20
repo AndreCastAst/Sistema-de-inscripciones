@@ -118,6 +118,50 @@ export async function registrarSimulacion(
   return data;
 }
 
+// ─── Pasarela MercadoPago ────────────────────────────────────────────────────
+
+export interface PreferenciaPago {
+  id: string;
+  init_point: string;
+  sandbox_init_point: string;
+}
+
+/** Crea la preferencia de pago de inscripción. Devuelve la URL de MercadoPago. */
+export async function crearCheckoutInscripcion(postulacionId: number): Promise<PreferenciaPago> {
+  const { data } = await api.post("/pagos/checkout", { postulacionId });
+  return data;
+}
+
+/**
+ * Confirma el pago con el payment_id que MercadoPago devuelve en la URL de
+ * retorno. El backend lo verifica contra la API de MercadoPago, así que no
+ * depende de que el webhook haya llegado todavía.
+ */
+export async function confirmarPagoInscripcion(
+  postulacionId: number,
+  paymentId: string
+): Promise<{ pagado: boolean; referencia?: string }> {
+  const { data } = await api.post(`/pagos/inscripcion/${postulacionId}/confirmar`, { paymentId });
+  return data;
+}
+
+export interface EstadoPagoInscripcion {
+  id: number;
+  pagado: boolean;
+  referencia: string | null;
+  gmail: string;
+}
+
+/**
+ * Consulta si el webhook de MercadoPago ya confirmó el pago. Al volver de la
+ * pasarela el pago suele estar aprobado pero la notificación puede demorar unos
+ * segundos, así que la pantalla de retorno consulta esto en intervalos.
+ */
+export async function consultarEstadoPago(postulacionId: number): Promise<EstadoPagoInscripcion> {
+  const { data } = await api.get(`/pagos/inscripcion/${postulacionId}/estado`);
+  return data;
+}
+
 // ─── Panel revisor ────────────────────────────────────────────────────────────
 
 export interface PostulacionBandejaItem {

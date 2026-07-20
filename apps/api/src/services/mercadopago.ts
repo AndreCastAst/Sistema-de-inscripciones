@@ -4,6 +4,12 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
 });
 
+// MercadoPago exige que auto_return apunte a una URL pública: con FRONTEND_URL
+// en localhost rechaza la preferencia con "auto_return invalid". En desarrollo
+// se omite y el usuario vuelve al sitio con el botón de la pantalla de pago.
+const esUrlPublica = /^https:\/\//.test(process.env.FRONTEND_URL ?? "");
+const autoReturn = esUrlPublica ? { auto_return: "approved" as const } : {};
+
 export interface PreferenciaResult {
   id: string;
   init_point: string;
@@ -30,7 +36,7 @@ export async function crearPreferenciaInscripcion(postulacionId: number, email: 
         failure: `${process.env.FRONTEND_URL}/postulante/${postulacionId}?pago=fallido`,
         pending: `${process.env.FRONTEND_URL}/postulante/${postulacionId}?pago=pendiente`,
       },
-      auto_return: "approved",
+      ...autoReturn,
       external_reference: `inscripcion-${postulacionId}`,
       notification_url: `${process.env.BACKEND_URL}/api/v1/pagos/notificacion`,
     },
@@ -63,7 +69,7 @@ export async function crearPreferenciaMensualidad(colegiadoId: number, periodo: 
         failure: `${process.env.FRONTEND_URL}/colegiado?pago=fallido&periodo=${periodo}`,
         pending: `${process.env.FRONTEND_URL}/colegiado?pago=pendiente&periodo=${periodo}`,
       },
-      auto_return: "approved",
+      ...autoReturn,
       external_reference: `mensualidad-${colegiadoId}-${periodo}`,
       notification_url: `${process.env.BACKEND_URL}/api/v1/pagos/notificacion`,
     },

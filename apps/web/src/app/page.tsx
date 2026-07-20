@@ -7,9 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
-import { consultarDNI, crearPostulacion, getRegiones } from "@/lib/api";
+import { consultarDNI, crearPostulacion, getRegiones, crearCheckoutInscripcion } from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
-import { SimuladorPago, type DatosPago } from "@/components/pagos/SimuladorPago";
 import type { Region } from "@/types";
 
 const schema = z.object({
@@ -115,8 +114,6 @@ export default function HomePage() {
   const [titulo, setTitulo] = useState<ArchivoState>(archivoInicial);
   const [voucher, setVoucher] = useState<ArchivoState>(archivoInicial);
   const [metodoPago, setMetodoPago] = useState<"integrated" | "voucher">("integrated");
-  const [mostrarSimulador, setMostrarSimulador] = useState(false);
-  const [pagoIntegradoRef, setPagoIntegradoRef] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [expedienteId, setExpedienteId] = useState<number | null>(null);
@@ -233,7 +230,9 @@ export default function HomePage() {
     foto.estado === "listo" &&
     titulo.estado === "listo" &&
     (
-      (metodoPago === "integrated" && pagoIntegradoRef !== null) ||
+      // Con MercadoPago el pago ocurre después de enviar, así que no se exige
+      // nada acá; con voucher externo el comprobante debe estar cargado.
+      metodoPago === "integrated" ||
       (metodoPago === "voucher" && voucher.estado === "listo")
     );
 
@@ -244,7 +243,9 @@ export default function HomePage() {
     setEnviando(true);
     setErrorEnvio(null);
     try {
-      const voucherFinal = metodoPago === "integrated" ? (pagoIntegradoRef ?? undefined) : (voucher.url ?? undefined);
+      // Con MercadoPago el expediente se crea sin pago y la pasarela lo confirma
+      // después por webhook; con voucher externo el comprobante ya viene cargado.
+      const voucherFinal = metodoPago === "voucher" ? (voucher.url ?? undefined) : undefined;
       const result = await crearPostulacion({
         ...data,
         regionId: Number(data.regionId),
@@ -252,6 +253,16 @@ export default function HomePage() {
         tituloUrl: titulo.url,
         voucherUrl: voucherFinal,
       });
+
+      if (metodoPago === "integrated") {
+        // Salimos del sitio hacia MercadoPago. No se limpia el formulario: si el
+        // usuario cancela y vuelve atrás, su expediente ya existe y la pantalla
+        // de retorno le permite reintentar el pago.
+        const preferencia = await crearCheckoutInscripcion(result.id);
+        window.location.href = preferencia.init_point;
+        return;
+      }
+
       setExpedienteId(result.id);
       setCorreoEnviado(data.gmail);
       setVoucherPagoRef(voucherFinal ?? null);
@@ -272,8 +283,6 @@ export default function HomePage() {
     setTitulo(archivoInicial);
     setVoucher(archivoInicial);
     setMetodoPago("integrated");
-    setPagoIntegradoRef(null);
-    setMostrarSimulador(false);
     setErrorEnvio(null);
     setExpedienteId(null);
     setCorreoEnviado(null);
@@ -417,29 +426,8 @@ export default function HomePage() {
 
   // ── Formulario ────────────────────────────────────────────────────────────
 
-  const datosPago: DatosPago = {
-    tipo: "inscripcion",
-    monto: 3,
-    nombres: getValues("nombres") || "Postulante",
-    apellidoPaterno: getValues("apellidoPaterno") || "",
-    apellidoMaterno: getValues("apellidoMaterno") || "",
-  };
-
   return (
     <>
-      {/* Overlay del simulador de pasarela */}
-      {mostrarSimulador && (
-        <SimuladorPago
-          datos={datosPago}
-          onExito={(info) => {
-            const digits = info.numOp.split("-")[1] ?? Date.now().toString().slice(-8);
-            setPagoIntegradoRef(`SIM-${info.banco}-${digits}-${info.codigoVoucher}`);
-            setMostrarSimulador(false);
-          }}
-          onCancelar={() => setMostrarSimulador(false)}
-        />
-      )}
-
       <NavBar activeTab="portal" />
       <main className="flex-grow py-xl px-md md:px-lg">
         <div className="max-w-container-max-form mx-auto bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
@@ -727,43 +715,21 @@ export default function HomePage() {
                 </label>
               </div>
 
-              {/* Pasarela integrada: botón para abrir simulador */}
+              {/* Pasarela MercadoPago: el cobro ocurre al enviar la solicitud.
+                  Se crea el expediente y recién entonces se redirige a pagar,
+                  porque MercadoPago necesita saber a qué expediente aplicar el
+                  pago cuando confirma por webhook. */}
               {metodoPago === "integrated" && (
-                <div className="mt-md">
-                  {pagoIntegradoRef ? (
-                    <div className="flex items-center gap-sm p-md bg-status-aprobado-bg border border-status-aprobado-text/30 rounded-xl">
-                      <span
-                        className="material-symbols-outlined text-status-aprobado-text text-3xl shrink-0"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        verified
-                      </span>
-                      <div className="flex-1">
-                        <p className="text-[14px] font-semibold text-status-aprobado-text">
-                          Pago de S/ 3.00 completado
-                        </p>
-                        <p className="text-[12px] text-on-surface-variant mt-xs">
-                          Tu pago fue procesado correctamente con la pasarela.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setMostrarSimulador(true)}
-                        className="text-[13px] text-on-surface-variant underline hover:text-on-surface shrink-0"
-                      >
-                        Cambiar
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setMostrarSimulador(true)}
-                      className="w-full flex items-center justify-center gap-sm p-md bg-primary text-on-primary rounded-xl hover:brightness-110 active:scale-95 transition-all font-semibold text-[15px] shadow-sm"
-                    >
-                      <span className="material-symbols-outlined text-xl">account_balance</span>
-                      Proceder al pago — S/ 3.00
-                    </button>
-                  )}
+                <div className="mt-md flex items-start gap-sm p-md bg-primary/5 border border-primary/20 rounded-xl">
+                  <span className="material-symbols-outlined text-primary shrink-0">info</span>
+                  <div className="text-[13px] text-on-surface-variant">
+                    <p className="font-semibold text-on-surface mb-xs">
+                      Pagarás S/ 3.00 con MercadoPago
+                    </p>
+                    Al enviar la solicitud te llevaremos a MercadoPago para completar el pago con
+                    tarjeta, Yape o saldo. Tu expediente queda guardado y podrás volver a pagarlo
+                    si algo falla.
+                  </div>
                 </div>
               )}
 
