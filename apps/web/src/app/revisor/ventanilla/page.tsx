@@ -3,7 +3,19 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import { Spinner } from "@/components/ui/Spinner";
-import { consultarDNI, crearPostulacion, obtenerEstadoCuenta, registrarSimulacion, desglosarDeuda, crearCheckoutInscripcion, crearCheckoutMensualidades, type EstadoCuenta } from "@/lib/api";
+import { QRPago } from "@/components/ui/QRPago";
+import {
+  consultarDNI,
+  crearPostulacion,
+  obtenerEstadoCuenta,
+  registrarSimulacion,
+  desglosarDeuda,
+  crearCheckoutInscripcion,
+  crearCheckoutMensualidades,
+  consultarEstadoPago,
+  consultarEstadoMensualidades,
+  type EstadoCuenta,
+} from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
 import { getRegion } from "@/lib/auth";
 
@@ -45,6 +57,7 @@ function TabNuevoExpediente() {
   // URL de la boleta emitida, para que el cajero la entregue en el momento.
   const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [qrPago, setQrPago] = useState<{ url: string; postulacionId: number } | null>(null);
 
   async function validarDNI() {
     if (!/^\d{8}$/.test(dni)) { setErrorDNI("Ingresa 8 dígitos numéricos"); return; }
@@ -108,7 +121,7 @@ function TabNuevoExpediente() {
 
       if (metodoPago === "digital") {
         const pref = await crearCheckoutInscripcion(result.id);
-        window.location.href = pref.init_point;
+        setQrPago({ url: pref.init_point, postulacionId: result.id });
         return;
       }
 
@@ -127,7 +140,25 @@ function TabNuevoExpediente() {
     setGmail("");
     setFotoUrl(null); setFotoEstado("idle"); setTituloUrl(null); setTituloEstado("idle");
     setVoucherUrl(null); setVoucherEstado("idle"); setMetodoPago("efectivo"); setComprobanteUrl(null);
-    setError(null); setExito(null);
+    setError(null); setExito(null); setQrPago(null);
+  }
+
+  if (qrPago) {
+    return (
+      <QRPago
+        url={qrPago.url}
+        verificarPago={async () => {
+          const estado = await consultarEstadoPago(qrPago.postulacionId);
+          if (estado.pagado) setComprobanteUrl(estado.referencia);
+          return estado.pagado;
+        }}
+        onConfirmado={() => {
+          setExito(qrPago.postulacionId);
+          setQrPago(null);
+        }}
+        onCancelar={() => setQrPago(null)}
+      />
+    );
   }
 
   if (exito) {
@@ -418,6 +449,7 @@ function TabTerminalCobro() {
   const [procesando, setProcesando] = useState(false);
   const [comprobanteId, setComprobanteId] = useState<string | null>(null);
   const [errorCobro, setErrorCobro] = useState<string | null>(null);
+  const [qrPago, setQrPago] = useState<{ url: string; codigo: string; periodos: string[]; total: number } | null>(null);
 
   const cuotasPendientes = cuenta?.mensualidades.filter((m) => m.pagadoEn === null) ?? [];
   const desglose = cuenta ? desglosarDeuda(cuenta) : null;
@@ -458,17 +490,22 @@ function TabTerminalCobro() {
     if (metodoCobro === "digital") {
       try {
         const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, { periodos: periodosAPagar });
-        window.location.href = pref.init_point;
-        return;
+        setQrPago({
+          url: pref.init_point,
+          codigo: cuenta.colegiado.codigo,
+          periodos: periodosAPagar,
+          total: totalACobrar,
+        });
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 403) {
           setErrorCobro("Este colegiado pertenece a otra sede. No tienes permisos para cobrarle.");
         } else {
           setErrorCobro("No se pudo iniciar el pago con MercadoPago. Intenta de nuevo.");
         }
+      } finally {
         setProcesando(false);
-        return;
       }
+      return;
     }
 
     try {
@@ -491,6 +528,24 @@ function TabTerminalCobro() {
     } finally {
       setProcesando(false);
     }
+  }
+
+  if (qrPago) {
+    return (
+      <QRPago
+        url={qrPago.url}
+        monto={qrPago.total}
+        verificarPago={async () => {
+          const r = await consultarEstadoMensualidades(qrPago.codigo, qrPago.periodos);
+          return r.pagado;
+        }}
+        onConfirmado={() => {
+          setComprobanteId(`MP-${String(Date.now()).slice(-7)}`);
+          setQrPago(null);
+        }}
+        onCancelar={() => setQrPago(null)}
+      />
+    );
   }
 
   if (comprobanteId && cuenta) {

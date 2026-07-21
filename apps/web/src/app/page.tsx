@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
-import { consultarDNI, crearPostulacion, getRegiones, crearCheckoutInscripcion } from "@/lib/api";
+import { QRPago } from "@/components/ui/QRPago";
+import { consultarDNI, crearPostulacion, getRegiones, crearCheckoutInscripcion, consultarEstadoPago } from "@/lib/api";
 import { subirImagen, subirPDF } from "@/lib/cloudinary";
 import type { Region } from "@/types";
 
@@ -106,6 +108,7 @@ function ZonaCarga({ archivo, onClick, icono, titulo, descripcion, mensajeCarga 
 // ── Página principal ─────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const router = useRouter();
   const [dniVerificado, setDniVerificado] = useState(false);
   const [buscandoDNI, setBuscandoDNI] = useState(false);
   const [errorDNI, setErrorDNI] = useState<string | null>(null);
@@ -120,6 +123,7 @@ export default function HomePage() {
   const [correoEnviado, setCorreoEnviado] = useState<string | null>(null);
   const [voucherPagoRef, setVoucherPagoRef] = useState<string | null>(null);
   const [regiones, setRegiones] = useState<Region[]>([]);
+  const [qrPago, setQrPago] = useState<{ url: string; postulacionId: number } | null>(null);
 
   const fotoRef = useRef<HTMLInputElement>(null);
   const tituloRef = useRef<HTMLInputElement>(null);
@@ -255,11 +259,10 @@ export default function HomePage() {
       });
 
       if (metodoPago === "integrated") {
-        // Salimos del sitio hacia MercadoPago. No se limpia el formulario: si el
-        // usuario cancela y vuelve atrás, su expediente ya existe y la pantalla
-        // de retorno le permite reintentar el pago.
+        // El expediente ya existe: si el cliente cierra el QR sin pagar, puede
+        // volver a intentarlo desde la pantalla de seguimiento del expediente.
         const preferencia = await crearCheckoutInscripcion(result.id);
-        window.location.href = preferencia.init_point;
+        setQrPago({ url: preferencia.init_point, postulacionId: result.id });
         return;
       }
 
@@ -290,6 +293,27 @@ export default function HomePage() {
   }
 
   // ── Estado de éxito ───────────────────────────────────────────────────────
+
+  if (qrPago) {
+    return (
+      <>
+        <NavBar activeTab="portal" />
+        <main className="flex-grow py-xl px-md md:px-lg">
+          <div className="max-w-container-max-form mx-auto">
+            <QRPago
+              url={qrPago.url}
+              verificarPago={async () => {
+                const estado = await consultarEstadoPago(qrPago.postulacionId);
+                return estado.pagado;
+              }}
+              onConfirmado={() => router.push(`/postulante/${qrPago.postulacionId}?pago=exitoso`)}
+              onCancelar={() => setQrPago(null)}
+            />
+          </div>
+        </main>
+      </>
+    );
+  }
 
   if (expedienteId !== null) {
     const esPasarela = voucherPagoRef?.startsWith("SIM-");

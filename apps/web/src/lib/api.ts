@@ -197,6 +197,21 @@ export async function confirmarPagoMensualidades(
   return data;
 }
 
+/**
+ * Consulta si el pago de mensualidades ya se confirmó, sin depender de un
+ * payment_id de retorno (el pago por QR ocurre en el celular del cliente, no
+ * en esta pantalla).
+ */
+export async function consultarEstadoMensualidades(
+  codigo: string,
+  periodos: string[]
+): Promise<{ pagado: boolean }> {
+  const { data } = await api.get("/pagos/mensualidad/estado", {
+    params: { codigo, periodos: periodos.join(",") },
+  });
+  return data;
+}
+
 export interface EstadoPagoInscripcion {
   id: number;
   pagado: boolean;

@@ -339,6 +339,29 @@ router.post("/mensualidad/checkout", optionalAuth, validate(mensualidadCheckoutS
   }
 });
 
+// GET /api/v1/pagos/mensualidad/estado — con el pago por QR ya no se vuelve a
+// esta pantalla con un payment_id en la URL, así que se consulta el registro
+// directamente: el webhook marca `pagadoEn` cuando MercadoPago confirma.
+router.get("/mensualidad/estado", async (req, res, next) => {
+  try {
+    const codigo = String(req.query.codigo ?? "");
+    const periodos = String(req.query.periodos ?? "").split(",").filter(Boolean);
+    if (!codigo || periodos.length === 0) {
+      return res.status(400).json({ error: "Faltan codigo o periodos" });
+    }
+
+    const colegiado = await prisma.colegiado.findUniqueOrThrow({ where: { codigo } });
+    const registros = await prisma.mensualidad.findMany({
+      where: { colegiadoId: colegiado.id, periodo: { in: periodos } },
+    });
+    const pagado = periodos.every((p) => registros.find((r) => r.periodo === p)?.pagadoEn);
+
+    res.json({ pagado });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/v1/pagos/mensualidad/confirmar — confirma con el payment_id del
 // retorno, sin depender de que el webhook haya llegado.
 router.post("/mensualidad/confirmar", validate(z.object({ paymentId: z.string().min(1) })), async (req, res, next) => {

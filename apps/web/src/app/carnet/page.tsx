@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
+import { QRPago } from "@/components/ui/QRPago";
 import {
   buscarColegiado,
   obtenerEstadoCuenta,
@@ -11,6 +12,7 @@ import {
   totalPorCantidad,
   crearCheckoutMensualidades,
   confirmarPagoMensualidades,
+  consultarEstadoMensualidades,
   api,
   type EstadoCuenta,
 } from "@/lib/api";
@@ -101,6 +103,7 @@ function PanelDeudaYPago({
   const [procesando, setProcesando] = useState(false);
   const [exitoPago, setExitoPago] = useState(false);
   const [errorPago, setErrorPago] = useState<string | null>(null);
+  const [qrPago, setQrPago] = useState<{ url: string; codigo: string; periodos: string[]; total: number } | null>(null);
 
   const pagables = cuenta ? cuotasPagables(cuenta) : [];
   const vencidasCount = pagables.filter((m) => m.antiguedad > 0).length;
@@ -158,17 +161,24 @@ function PanelDeudaYPago({
     }
   }
 
-  // Redirige a MercadoPago con todos los periodos elegidos en una sola
-  // preferencia. El monto final (cuotas + mora) lo calcula el backend.
+  // Preferencia con todos los periodos elegidos, mostrada como QR: el cliente
+  // paga desde su propio celular, no desde este navegador. El monto final
+  // (cuotas + mora) lo calcula el backend.
   async function pagarConMercadoPago() {
     if (!cuenta || periodosAPagar.length === 0) return;
     setProcesando(true);
     setErrorPago(null);
     try {
       const pref = await crearCheckoutMensualidades(cuenta.colegiado.codigo, { periodos: periodosAPagar });
-      window.location.href = pref.init_point;
+      setQrPago({
+        url: pref.init_point,
+        codigo: cuenta.colegiado.codigo,
+        periodos: periodosAPagar,
+        total: totalAPagar,
+      });
     } catch {
       setErrorPago("No se pudo iniciar el pago. Intenta de nuevo en unos minutos.");
+    } finally {
       setProcesando(false);
     }
   }
@@ -185,6 +195,25 @@ function PanelDeudaYPago({
   for (const m of cuotasIncluidas) {
     const anio = m.periodo.split("-")[0];
     porAnio[anio] = [...(porAnio[anio] ?? []), m];
+  }
+
+  if (qrPago) {
+    return (
+      <QRPago
+        url={qrPago.url}
+        monto={qrPago.total}
+        verificarPago={async () => {
+          const r = await consultarEstadoMensualidades(qrPago.codigo, qrPago.periodos);
+          return r.pagado;
+        }}
+        onConfirmado={() => {
+          setExitoPago(true);
+          setQrPago(null);
+          onPagoExito();
+        }}
+        onCancelar={() => setQrPago(null)}
+      />
+    );
   }
 
   if (exitoPago) {

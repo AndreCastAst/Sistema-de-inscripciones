@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { NavBar } from "@/components/ui/NavBar";
 import { Spinner } from "@/components/ui/Spinner";
+import { QRPago } from "@/components/ui/QRPago";
 import {
   consultarEstadoPago,
   crearCheckoutInscripcion,
@@ -32,6 +33,7 @@ export default function RetornoPagoPage({ params }: Props) {
   const [verificando, setVerificando] = useState(resultado === "exitoso");
   const [error, setError] = useState<string | null>(null);
   const [reintentando, setReintentando] = useState(false);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -102,14 +104,39 @@ export default function RetornoPagoPage({ params }: Props) {
     setError(null);
     try {
       const preferencia = await crearCheckoutInscripcion(id);
-      window.location.href = preferencia.init_point;
+      setQrUrl(preferencia.init_point);
     } catch {
       setError("No se pudo iniciar el pago. Intenta de nuevo en unos minutos.");
+    } finally {
       setReintentando(false);
     }
   }, [id]);
 
   const expediente = `#CIP-${new Date().getFullYear()}-${String(id).padStart(4, "0")}`;
+
+  if (qrUrl) {
+    return (
+      <>
+        <NavBar activeTab="portal" />
+        <main className="flex-grow w-full max-w-[672px] mx-auto px-md md:px-lg py-xl">
+          <QRPago
+            url={qrUrl}
+            verificarPago={async () => {
+              const estado = await consultarEstadoPago(id);
+              if (estado.pagado) {
+                setPagado(true);
+                setReferencia(estado.referencia);
+                setGmail(estado.gmail);
+              }
+              return estado.pagado;
+            }}
+            onConfirmado={() => setQrUrl(null)}
+            onCancelar={() => setQrUrl(null)}
+          />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
