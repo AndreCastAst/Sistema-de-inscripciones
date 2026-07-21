@@ -95,7 +95,9 @@ function TabNuevoExpediente() {
     (metodoPago === "voucher" && voucherEstado === "listo");
 
   async function registrar() {
-    if (!dniVerificado || !fotoUrl || !tituloUrl || !gmail || !regionId || !pagoCompleto) {
+    // El título profesional puede subsanarse después: no bloquea el registro
+    // del expediente en ventanilla, a diferencia de la foto (obligatoria).
+    if (!dniVerificado || !fotoUrl || !gmail || !regionId || !pagoCompleto) {
       setError("Complete todos los campos, suba los documentos y registre el pago.");
       return;
     }
@@ -114,7 +116,7 @@ function TabNuevoExpediente() {
       const result = await crearPostulacion({
         dni, nombres, apellidoPaterno, apellidoMaterno, gmail,
         regionId,
-        fotoUrl, tituloUrl,
+        fotoUrl, tituloUrl: tituloUrl ?? undefined,
         voucherUrl: voucherFinal,
         esFisico: true,
       });
@@ -301,7 +303,7 @@ function TabNuevoExpediente() {
         <div className="grid grid-cols-2 gap-md">
           {([
             { tipo: "foto" as const, ref: fotoRef, accept: "image/jpeg,image/png", estado: fotoEstado, icon: "add_a_photo", label: "Fotografía (3:4)", sub: "JPG/PNG" },
-            { tipo: "titulo" as const, ref: tituloRef, accept: "application/pdf", estado: tituloEstado, icon: "picture_as_pdf", label: "Título Profesional", sub: "PDF Máx 10MB" },
+            { tipo: "titulo" as const, ref: tituloRef, accept: "application/pdf", estado: tituloEstado, icon: "picture_as_pdf", label: "Título Profesional (opcional)", sub: "PDF Máx 10MB" },
           ]).map(({ tipo, ref, accept, estado, icon, label, sub }) => (
             <div key={tipo}>
               <input type="file" ref={ref} className="hidden" accept={accept}
